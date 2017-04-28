@@ -1,7 +1,7 @@
 #!/usr/bin/env nextflow
 
 /*
-This is the main PhyloComb workflow file
+This is the main PhyloMagnet workflow file
 author : max emil schön
 email  : <max-emil.schon{at}icm.uu.se>
 dependencies:

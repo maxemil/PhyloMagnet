@@ -1,4 +1,4 @@
-# Pipeline for combing through metagenomes (PhyloComb?)
+# Pipeline for combing through metagenomes (PhyloMagnet)
 ## looking for arbitrary lineages, using gene-centric assembly methods
 
 
@@ -24,11 +24,17 @@ drwxr-xr-x 1 MaxEmil users     354 Apr 28 13:10 references
 drwxr-xr-x 1 MaxEmil users      52 Apr 28 13:10 work
 
 ```
+## Development PLans
+* try including RP15 pipeline, so producing linked contigs for genes (paired end information?)
+* Intergenic space?
+* Refine interface to be able to use own fastq files
+* Try using pplacer or similar instead of aligning and redoing phylogenies for each marker multiple times....
 
 ## comparison to PhyloSift
 * HMM search (might be more sensitive...)
 * FastTree for phylogenetics
 * No internal assembly, so either assembled metagnomes or raw reads  
+* Makes a whole community analyses to see what is there, so much slower but a little bit more general
 
 ## Log
 
@@ -49,7 +55,7 @@ drwxr-xr-x 1 MaxEmil users      52 Apr 28 13:10 work
 * download reference alignments and trees from EGGNOG, then use --addfragments in mafft to add contigs.
 
 ### 17-04-18
-* [x] download aligned references for all EggNOG classes, then only add assembled contigs
+* Download aligned references for all EggNOG classes, then only add assembled contigs
 
 ### 17-04-20
 * changed language (again...) to NextFlow
@@ -58,5 +64,4 @@ drwxr-xr-x 1 MaxEmil users      52 Apr 28 13:10 work
 * NextFlow implementation ready up to alignment and trimming of assembled contigs.
 
 ### 17-04-28
-* [ ] Refine interface to be able to use own fastq files
-* Put third-party binary paths in the params
+* Put third-party binary paths in the params, so you can change them easily on the CL
