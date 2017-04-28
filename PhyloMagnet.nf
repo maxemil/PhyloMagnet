@@ -13,6 +13,12 @@ dependencies:
   trimal
 */
 
+params.daa_meganizer = "/usr/local/bin/megan6-ce/tools/daa-meganizer"
+params.gc_assembler = "/usr/local/bin/megan6-ce/tools/gc-assembler"
+//python3 = "/usr/bin/env python3"
+params.python3 = "/usr/local/bin/anapy3"
+// can be either "fasttree" or "iqtree-omp"
+params.phylo_method = "fasttree"
 params.cpus = "40"
 params.megan_eggnog_map = "eggnog.map"
 params.reference_classes = "EGGNOG_List"
@@ -44,7 +50,7 @@ process filterRuns {
     errorStrategy 'ignore'
 
     """
-    #! ${conf.python3}
+    #! ${params.python3}
 
     import re
     import sys
@@ -130,7 +136,7 @@ process createEggNOGMap {
     file "${fasta.baseName}.class" into class_map
 
     """
-    #! ${conf.python3}
+    #! ${params.python3}
 
     from Bio import SeqIO
     from pathlib import Path
@@ -224,7 +230,7 @@ process meganizeDAAFiles {
     """
     mkdir references
     mv ${eggnog_map} references/
-    ${conf.daa_meganizer} --in ${daa} -fun EGGNOG -s2eggnog references/${eggnog_map}
+    ${params.daa_meganizer} --in ${daa} -fun EGGNOG -s2eggnog references/${eggnog_map}
     """
 }
 
@@ -244,7 +250,7 @@ process geneCentricAssembly {
     publishDir "${params.queries_dir}/${daa.baseName}", mode: 'copy'
 
     """
-    ${conf.gc_assembler} -i ${daa} -fun EGGNOG -id ALL -mic 99 -v --minAvCoverage 2
+    ${params.gc_assembler} -i ${daa} -fun EGGNOG -id ALL -mic 99 -v --minAvCoverage 2
     """
 }
 
@@ -266,7 +272,7 @@ process translateDNAtoAA {
     publishDir "${params.queries_dir}/${contig.baseName.minus(~/-.+/)}", mode: 'copy'
 
     """
-    #! ${conf.python3}
+    #! ${params.python3}
 
     from Bio import SeqIO
     import copy
@@ -345,11 +351,11 @@ process buildTreeFromAlignment {
     cpus 20
 
     script:
-    if (conf.phylo_method == "iqtree")
+    if (params.phylo_method == "iqtree")
       """
       iqtree-omp -s ${aln} -m LG -bb 1000 -nt 2 -pre ${aln.baseName}
       """
-    else if (conf.phylo_method == "fasttree")
+    else if (params.phylo_method == "fasttree")
       """
       FastTree ${aln} > ${aln.baseName}.treefile
       """
