@@ -10,12 +10,20 @@ Given a list of Bioproject IDs, the pipeline should get WGS Metagenome Illumina 
 ```
 curl -fsSL get.nextflow.io | bash
 ```
-* If your third-party binaries are not in your path, specify their location in the nextflow.config file
+* If your third-party binaries are not in your path, specify their location in the command line (or change the script locally)
 * execute the workflow like this:
 ```
 nextflow run PhyloComb.nf --cpus 30 --reference-classes EGGNOG_List --project-list bioprojects.txt
 ```
 * I do most testing using Bioproject PRJNA104935 and a small list of EggNOG IDs, but you can use any BioProject that contains WGS Illumina (Meta)genome reads and any EggNOG Ids for which there are fasta and aln files available.
+* this will create something like the following directory tree:
+```
+-rw-r--r-- 1 MaxEmil users      40 Apr 11 11:47 EGGNOG_List
+-rw-r--r-- 1 MaxEmil users 1712353 Apr 11 11:57 eggnog.map
+drwxr-xr-x 1 MaxEmil users     354 Apr 28 13:10 references
+drwxr-xr-x 1 MaxEmil users      52 Apr 28 13:10 work
+
+```
 
 ## comparison to PhyloSift
 * HMM search (might be more sensitive...)
@@ -51,4 +59,4 @@ nextflow run PhyloComb.nf --cpus 30 --reference-classes EGGNOG_List --project-li
 
 ### 17-04-28
 * [ ] Refine interface to be able to use own fastq files
-* Put third-party binary paths in a config file
+* Put third-party binary paths in the params
