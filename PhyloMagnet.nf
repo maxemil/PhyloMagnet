@@ -11,14 +11,17 @@ dependencies:
   megan >= version 6 (gc-assembler and daa-meganizer tools)
   mafft >= version 7 (--addfragments option)
   trimal
+  FastTree or iqtree-omp
 */
 
 params.daa_meganizer = "/usr/local/bin/megan6-ce/tools/daa-meganizer"
 params.gc_assembler = "/usr/local/bin/megan6-ce/tools/gc-assembler"
 //python3 = "/usr/bin/env python3"
+/* this is just because of my weird anaconda/python installation */
 params.python3 = "/usr/local/bin/anapy3"
 // can be either "fasttree" or "iqtree-omp"
 params.phylo_method = "fasttree"
+// should be 1 by default?
 params.cpus = "40"
 params.megan_eggnog_map = "eggnog.map"
 params.reference_classes = "EGGNOG_List"
@@ -26,7 +29,8 @@ params.reference_dir = "references/"
 params.queries_dir = "queries/"
 params.project_list = "bioproject_result.txt"
 
-//IDs = Channel.from(file(params.project_list).readLines())
+// reads a list of Bioproject IDs, but testing only on one single ID
+// IDs = Channel.from(file(params.project_list).readLines())
 IDs = Channel.from('PRJNA104935')
 EggNOGIDs = Channel.from(file(params.reference_classes).readLines())
 megan_eggnog_map = Channel.from(file(params.megan_eggnog_map))
