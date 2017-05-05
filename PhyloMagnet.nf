@@ -29,6 +29,8 @@ params.reference_dir = "references/"
 params.queries_dir = "queries/"
 params.project_list = "bioproject_result.txt"
 
+params.fastq = false
+
 // reads a list of Bioproject IDs, but testing only on one single ID
 // IDs = Channel.from(file(params.project_list).readLines())
 IDs = Channel.from('PRJNA104935')
@@ -83,17 +85,24 @@ process downloadFastQ {
     set file('runs.txt'), val(x) from project_runs
 
     output:
-    file "*.fastq.gz" into fastq_files
+    file "*.fastq.gz" into fastq_files mode flatten
 
     publishDir params.queries_dir
 
-    """
-    #! /usr/bin/env bash
-    while read run; do
-      fastq-dump --gzip --readids --split-spot --skip-technical --clip \$run &
-    done <  runs.txt
-    wait
-    """
+    script:
+    fastq_file = new File(params.fastq)
+    if (fastq_file.exists())
+      """
+      ln -s ${fastq_file.getAbsolutePath()} .
+      """
+    else
+      """
+      #! /usr/bin/env bash
+      while read run; do
+        fastq-dump --gzip --readids --split-spot --skip-technical --clip \$run &
+      done <  runs.txt
+      wait
+      """
 }
 
 /*
@@ -199,7 +208,7 @@ process diamondMakeDB {
 */
 process alignFastQFiles {
     input:
-    file fq from fastq_files.flatten()
+    file fq from fastq_files
     file 'references.dmnd' from diamond_database.first()
 
     output:
