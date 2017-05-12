@@ -26,9 +26,13 @@ drwxr-xr-x 1 MaxEmil users      52 Apr 28 13:10 work
 ```
 ## Development PLans
 * try including RP15 pipeline, so producing linked contigs for genes (paired end information?)
-* Intergenic space?
-* Refine interface to be able to use own fastq files
+  * Intergenic space length?
+  * pull out reads, then mini-meta-assembly?
+  * 
 * Try using pplacer or similar instead of aligning and redoing phylogenies for each marker multiple times....
+* alternatively use iqtree using the reference eggnog tree as a constraint
+* combine all samples of a project into one tree?
+
 
 ## comparison to PhyloSift
 * HMM search (might be more sensitive...)
@@ -65,3 +69,6 @@ drwxr-xr-x 1 MaxEmil users      52 Apr 28 13:10 work
 
 ### 17-04-28
 * Put third-party binary paths in the params, so you can change them easily on the CL
+
+### 17-05-03
+* [x] Refine interface to be able to use own fastq files
