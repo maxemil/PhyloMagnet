@@ -16,7 +16,7 @@ dependencies:
 
 params.daa_meganizer = "/usr/local/bin/megan6-ce/tools/daa-meganizer"
 params.gc_assembler = "/usr/local/bin/megan6-ce/tools/gc-assembler"
-//python3 = "/usr/bin/env python3"
+//params.python3 = "/usr/bin/env python3"
 /* this is just because of my weird anaconda/python installation */
 params.python3 = "/usr/local/bin/anapy3"
 // can be either "fasttree" or "iqtree-omp"
@@ -28,6 +28,7 @@ params.reference_classes = "EGGNOG_List"
 params.reference_dir = "references/"
 params.queries_dir = "queries/"
 params.project_list = "bioproject_result.txt"
+params.taxonomy_level_trees = "class"
 
 params.fastq = false
 
@@ -171,7 +172,7 @@ process createEggNOGMap {
       for rec in SeqIO.parse("${fasta}", 'fasta'):
         s = rec.id.split('.')
         eggnog_map.write("%s\\t%s\\n" % (s[1], local_eggnog_map[eggnog_id]))
-        tax_map.write("%s\\t%s\\n" % (s[1], s[0]))
+        tax_map.write("%s\\t%s\\n" % (rec.id, s[0]))
     """
 }
 
@@ -373,3 +374,70 @@ process buildTreeFromAlignment {
       FastTree ${aln} > ${aln.baseName}.treefile
       """
 }
+
+trees.into{ treesVisualize; treesMagnetize }
+
+process makePDFsFromTrees {
+    input:
+    file tree from treesVisualize
+    file tax_map_concat from tax_map_concat.first()
+
+    output:
+    file "${tree.baseName}.pdf" into pdfs
+
+    publishDir "${params.queries_dir}/${tree.baseName.minus(~/-.+/)}", mode: 'copy'
+
+    script:
+    """
+    #! ${params.python3}
+    import sys
+    sys.path.append('/local/two/Software/python_lib/')
+    from ETE3_Utils import *
+    from ETE3_styles import *
+    from misc_utils import *
+    import ete3
+
+    def my_initiate_clades(tree, taxon_clade):
+      for l in tree.traverse():
+        l.add_feature(pr_name='clade', pr_value=taxon_clade[l.name])
+
+    tree = parse_newick("$tree")
+    set_node_style(tree, node_style_basic)
+    taxon_clade, clade_taxon, taxon_prefix, prefix_taxon = read_prefix_map(tree, "$tax_map_concat")
+    clade_taxon_mod, taxon_clade_mod = get_clade_names(taxon_clade, "$params.taxonomy_level_trees")
+    my_initiate_clades(tree, taxon_clade_mod)
+
+    leaves = set(tree.iter_leaves())
+    while leaves:
+      node = leaves.pop()
+      mono_clade = get_mono_clade(node)
+      ancestor = get_ancestor(list(mono_clade))
+      if len(mono_clade) > 1 and node.clade:
+        ancestor.name = node.clade
+        for l in mono_clade:
+          leaves.discard(l)
+        for c in ancestor.get_children():
+          ancestor.remove_child(c)
+
+    tree.ladderize(direction=1)
+    ts = tree_style_basic(layout_node_color, "${tree.baseName}")
+    tree.render("${tree.baseName}.pdf", tree_style=ts)#w=1500, units="px",
+    """
+}
+
+// process magnetizeTrees{
+//     input:
+//     file tree from treesMagnetize
+//
+//     output:
+//
+//     script:
+//     """
+//     #! ${params.python3}
+//
+//     tree = parse_newick("$tree")
+//
+//     """
+//
+//
+// }
