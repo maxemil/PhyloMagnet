@@ -30,7 +30,7 @@ params.queries_dir = "queries/"
 params.project_list = "bioproject_result.txt"
 params.taxonomy_level_trees = "class"
 
-params.fastq = false
+params.fastq = ""
 
 // reads a list of Bioproject IDs, but testing only on one single ID
 // IDs = Channel.from(file(params.project_list).readLines())
