@@ -28,9 +28,10 @@ drwxr-xr-x 1 MaxEmil users      52 Apr 28 13:10 work
 * try including RP15 pipeline, so producing linked contigs for genes (paired end information?)
   * Intergenic space length?
   * pull out reads, then mini-meta-assembly?
-  * 
+  *
 * Try using pplacer or similar instead of aligning and redoing phylogenies for each marker multiple times....
 * alternatively use iqtree using the reference eggnog tree as a constraint
+  * new -fast option in 1.6.3 beta!  
 * combine all samples of a project into one tree?
 
 

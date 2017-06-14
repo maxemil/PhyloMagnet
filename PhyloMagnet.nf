@@ -367,7 +367,8 @@ process buildTreeFromAlignment {
     script:
     if (params.phylo_method == "iqtree")
       """
-      iqtree-omp -s ${aln} -m LG -bb 1000 -nt 2 -pre ${aln.baseName}
+      #iqtree-omp -s ${aln} -m LG -bb 1000 -nt 2 -pre ${aln.baseName}
+      local/two/Software/iqtree-1.6.beta3-Linux/bin/iqtree -fast -s ${aln} -m LG -bb 1000 -nt 2 -pre ${aln.baseName}
       """
     else if (params.phylo_method == "fasttree")
       """
