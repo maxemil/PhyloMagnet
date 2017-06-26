@@ -16,6 +16,8 @@ dependencies:
 def startup_message() {
     log.info "=========================================================="
     log.info "                       PhyloMagnet"
+    log.info "Author                            : Max Emil Schön"
+    log.info "email                             : max-emil.schon@icm.uu.se"
     log.info "=========================================================="
     log.info "List of EggNOG classes            : $params.reference_classes"
     log.info "List of BioProject Ids            : $params.project_list"
@@ -280,6 +282,7 @@ process alignContigs {
 
     //publishDir 'queries', mode: 'copy'
     cpus params.cpus
+    maxForks 1
 
     """
     id=\$(grep "${faa.baseName.minus(~/^.+-/)}" $class_map_concat | cut -f 2)".aln"
