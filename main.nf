@@ -13,28 +13,32 @@ dependencies:
   trimal
   FastTree or iqtree-omp
 */
+def startup_message() {
+    log.info "=========================================================="
+    log.info "                       PhyloMagnet"
+    log.info "=========================================================="
+    log.info "List of EggNOG classes            : $params.reference_classes"
+    log.info "List of BioProject Ids            : $params.project_list"
+    log.info "Output dir for queries            : $params.queries_dir"
+    log.info "Output dir for references         : $params.reference_dir"
+    log.info "Phylogenetic method               : $params.phylo_method"
+    log.info "number of threads                 : $params.cpus"
+    log.info "Map of EggNOG from MEGAN          : $params.megan_eggnog_map"
+    log.info "taxonomic level to be analysed    : $params.taxonomy_level_trees"
+    log.info "Use a local fastq file            : $params.fastq"
+    log.info "Use run IDs instead of projects   : $params.is_runs"
+    log.info "location of gc-assembler          : $params.gc_assembler"
+    log.info "location of daa-meganizer         : $params.daa_meganizer"
+    log.info "Python 3 binary used              : $params.python3"
+    log.info ""
+    log.info ""
+}
 
-params.daa_meganizer = "/usr/local/bin/megan6-ce/tools/daa-meganizer"
-params.gc_assembler = "/usr/local/bin/megan6-ce/tools/gc-assembler"
-//params.python3 = "/usr/bin/env python3"
-/* this is just because of my weird anaconda/python installation */
-params.python3 = "/usr/local/bin/anapy3"
-// can be either "fasttree" or "iqtree-omp"
-params.phylo_method = "fasttree"
-// should be 1 by default?
-params.cpus = "40"
-params.megan_eggnog_map = "eggnog.map"
-params.reference_classes = "EGGNOG_List"
-params.reference_dir = "references/"
-params.queries_dir = "queries/"
-params.project_list = "bioproject_result.txt"
-params.taxonomy_level_trees = "class"
-
-params.fastq = ""
+startup_message()
 
 // reads a list of Bioproject IDs, but testing only on one single ID
-// IDs = Channel.from(file(params.project_list).readLines())
-IDs = Channel.from('PRJNA104935')
+IDs = Channel.from(file(params.project_list).readLines())
+// IDs = Channel.from('PRJNA104935')
 EggNOGIDs = Channel.from(file(params.reference_classes).readLines())
 megan_eggnog_map = Channel.from(file(params.megan_eggnog_map))
 
@@ -56,24 +60,14 @@ process filterRuns {
 
     errorStrategy 'ignore'
 
-    """
-    #! ${params.python3}
-
-    import re
-    import sys
-    import requests
-
-    url = "http://trace.ncbi.nlm.nih.gov/Traces/sra/sra.cgi?save=efetch&rettype=runinfo&db=sra&term=${projectID}"
-    desc = requests.get(url).text
-
-    regex_strings = ['WGS|shotgun', 'ILLUMINA', 'METAGENOMIC|metagenome']
-    with open('runs.txt', 'w') as out:
-      for line in desc.split():
-        if all(re.search(pat, line) for pat in regex_strings):
-          print(line.split(",")[0], file=out)
-          #open(line.split(",")[0], 'w').close()
-          #print("%s_%s" % ("${projectID}", line.split(",")[0]))
-    """
+    script:
+    if (params.is_runs){
+      """
+      echo $projectID > runs.txt
+      """
+    }else{
+      template 'filterRuns.py'
+    }
 }
 
 /*
@@ -149,31 +143,8 @@ process createEggNOGMap {
     file "${fasta.baseName}_taxid.map" into tax_map
     file "${fasta.baseName}.class" into class_map
 
-    """
-    #! ${params.python3}
-
-    from Bio import SeqIO
-    from pathlib import Path
-
-    eggnog_id = "${fasta.baseName}"
-    local_eggnog_map = {}
-    with open("${megan_eggnog_map}") as handle:
-      for line in handle:
-        if line.startswith('-'):
-          continue
-        else:
-          line = line.split()
-          local_eggnog_map[line[1]] = line[0]
-
-    with open("${fasta.baseName}_eggnog.map", 'w') as eggnog_map, \
-          open("${fasta.baseName}_taxid.map", 'w') as tax_map, \
-          open("${fasta.baseName}.class", 'w') as class_map:
-      class_map.write("%s\\t%s\\n" % (local_eggnog_map[eggnog_id], eggnog_id))
-      for rec in SeqIO.parse("${fasta}", 'fasta'):
-        s = rec.id.split('.')
-        eggnog_map.write("%s\\t%s\\n" % (s[1], local_eggnog_map[eggnog_id]))
-        tax_map.write("%s\\t%s\\n" % (rec.id, s[0]))
-    """
+    script:
+    template 'createEggNOGMap.py'
 }
 
 /*
@@ -195,6 +166,7 @@ process diamondMakeDB {
 
     publishDir params.reference_dir
 
+    script:
     """
     diamond makedb --in references.fasta --db references.dmnd
     """
@@ -218,6 +190,7 @@ process alignFastQFiles {
     //publishDir 'queries', mode: 'copy'
     cpus = params.cpus
 
+    script:
     """
     diamond blastx -q ${fq} --db references.dmnd -f 100 --unal 0 -e 1e-6 --out ${fq.getName().minus(".fastq.gz")}.daa
     """
@@ -241,6 +214,7 @@ process meganizeDAAFiles {
     file daa into daa_files_meganized
 
     //publishDir 'queries', mode: 'copy', overwrite: true
+    script:
     """
     mkdir references
     mv ${eggnog_map} references/
@@ -263,6 +237,7 @@ process geneCentricAssembly {
 
     publishDir "${params.queries_dir}/${daa.baseName}", mode: 'copy'
 
+    script:
     """
     ${params.gc_assembler} -i ${daa} -fun EGGNOG -id ALL -mic 99 -v --minAvCoverage 2
     """
@@ -285,25 +260,8 @@ process translateDNAtoAA {
 
     publishDir "${params.queries_dir}/${contig.baseName.minus(~/-.+/)}", mode: 'copy'
 
-    """
-    #! ${params.python3}
-
-    from Bio import SeqIO
-    import copy
-
-    seqs = []
-    seqs_codon_table_6 = []
-    for seq in SeqIO.parse("${contig}", 'fasta'):
-        seq_prot = copy.deepcopy(seq)
-        seq_prot.seq = seq.seq.translate(table=1)
-        if '*' in seq_prot.seq:
-            seq_prot.seq = seq.seq.translate(table=6)
-            seqs_codon_table_6.append(seq_prot)
-            continue
-        seqs.append(seq_prot)
-        SeqIO.write(seqs, '%s.faa' % "${contig.baseName}", 'fasta')
-        #SeqIO.write(seqs_codon_table_6, '%s_table6.faa' % "${contig.baseName}", 'fasta')
-    """
+    script:
+    template 'translateDNAtoAA.py'
 }
 
 
@@ -368,7 +326,7 @@ process buildTreeFromAlignment {
     if (params.phylo_method == "iqtree")
       """
       #iqtree-omp -s ${aln} -m LG -bb 1000 -nt 2 -pre ${aln.baseName}
-      local/two/Software/iqtree-1.6.beta3-Linux/bin/iqtree -fast -s ${aln} -m LG -bb 1000 -nt 2 -pre ${aln.baseName}
+      /local/two/Software/iqtree-1.6.beta3-Linux/bin/iqtree -fast -s ${aln} -m LG -nt 2 -pre ${aln.baseName}
       """
     else if (params.phylo_method == "fasttree")
       """
