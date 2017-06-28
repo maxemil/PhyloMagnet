@@ -6,15 +6,14 @@ from ETE3_styles import *
 from misc_utils import *
 import ete3
 
-def my_initiate_clades(tree, taxon_clade):
-  for l in tree.traverse():
-    l.add_feature(pr_name='clade', pr_value=taxon_clade[l.name])
-
 tree = parse_newick("$tree")
 set_node_style(tree, node_style_basic)
-taxon_clade, clade_taxon, taxon_prefix, prefix_taxon = read_prefix_map(tree, "$tax_map_concat")
+taxon_clade, clade_taxon, taxon_prefix, prefix_taxon = read_prefix_map(tree, "tax.map")
 clade_taxon_mod, taxon_clade_mod = get_clade_names(taxon_clade, "$params.taxonomy_level_trees")
-my_initiate_clades(tree, taxon_clade_mod)
+initiate_clades(tree, taxon_clade_mod, 'clade')
+
+outgroup = tree.get_midpoint_outgroup()
+tree.set_outgroup(outgroup)
 
 leaves = set(tree.iter_leaves())
 while leaves:
