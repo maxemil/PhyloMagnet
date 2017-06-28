@@ -153,7 +153,7 @@ process createEggNOGMap {
   concatenate single mapping files and keep track of long/short IDs for EggNOG
 */
 eggnog_map_concat = eggnog_map.collectFile(name: 'eggnog.syn', storeDir: params.reference_dir)
-tax_map_concat = tax_map.collectFile(name: 'tax.syn', storeDir: params.reference_dir)
+// tax_map_concat = tax_map.collectFile(name: 'tax.syn', storeDir: params.reference_dir)
 class_map_concat = class_map.collectFile(name: 'class.map', storeDir: params.reference_dir)
 
 /*
@@ -342,12 +342,14 @@ trees.into{ treesVisualize; treesMagnetize }
 process makePDFsFromTrees {
     input:
     file tree from treesVisualize
-    file tax_map_concat from tax_map_concat.first()
+    file '*' from tax_map.collect()
 
     output:
     file "${tree.baseName}.pdf" into pdfs
 
     publishDir "${params.queries_dir}/${tree.baseName.minus(~/-.+/)}", mode: 'copy'
+
+    beforeScript = {"ln -s \$(grep ${tree.baseName.minus(~/^.+-/).minus(~/.trim/)} $workflow.launchDir/${params.reference_dir}/class.map | cut -f 2)\"_taxid.map\" tax.map"}
 
     script:
     template 'makePDFfromTree.py'
