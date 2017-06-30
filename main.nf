@@ -14,10 +14,12 @@ dependencies:
   FastTree or iqtree-omp
 */
 def startup_message() {
+    revision = grab_git_revision() ?: 'no idea... didnt find the git repo'
     log.info "=========================================================="
     log.info "                       PhyloMagnet"
     log.info "Author                            : Max Emil Schön"
     log.info "email                             : max-emil.schon@icm.uu.se"
+    log.info "version                           : $revision"
     log.info "=========================================================="
     log.info "List of EggNOG classes            : $params.reference_classes"
     log.info "List of BioProject Ids            : $params.project_list"
@@ -374,3 +376,25 @@ decisions_concat = decisions.collectFile(name: 'decisions.txt', storeDir: params
 //
 //
 // }
+
+
+def grab_git_revision() {
+    if ( workflow.commitId ) { // it's run directly from github
+        return workflow.commitId
+    }
+
+    // Try to find the revision directly from git
+    head_pointer_file = file("${workflow.projectDir}/../.git/HEAD")
+    if ( ! head_pointer_file.exists() ) {
+        return ''
+    }
+    ref = head_pointer_file.newReader().readLine().tokenize()[1]
+
+    ref_file = file("${workflow.projectDir}/../.git/$ref")
+    if ( ! ref_file.exists() ) {
+        return ''
+    }
+    revision = ref_file.newReader().readLine()
+
+    return revision
+}
