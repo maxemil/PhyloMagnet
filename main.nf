@@ -281,8 +281,8 @@ process alignContigs {
     file '*.aln' into aligned_contigs
 
     //publishDir 'queries', mode: 'copy'
-    cpus params.cpus
-    maxForks 1
+    cpus 4
+    // maxForks 1
 
     """
     id=\$(grep "${faa.baseName.minus(~/^.+-/)}" $class_map_concat | cut -f 2)".aln"
@@ -346,6 +346,8 @@ process makePDFsFromTrees {
 
     output:
     file "${tree.baseName}.pdf" into pdfs
+    file 'decision.txt' into decisions
+    stdout x
 
     publishDir "${params.queries_dir}/${tree.baseName.minus(~/-.+/)}", mode: 'copy'
 
@@ -354,7 +356,8 @@ process makePDFsFromTrees {
     script:
     template 'makePDFfromTree.py'
 }
-
+x.subscribe{print it}
+decisions_concat = decisions.collectFile(name: 'decisions.txt', storeDir: params.queries_dir)
 // process magnetizeTrees{
 //     input:
 //     file tree from treesMagnetize
