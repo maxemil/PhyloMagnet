@@ -11,6 +11,12 @@ def my_initiate_clades(tree, taxon_clade):
   for l in tree.traverse():
     l.add_feature(pr_name='clade', pr_value=taxon_clade[l.name])
 
+cog_base = "${tree.baseName.minus(~/^.+-/).minus(~/.trim/)}"
+for line in open("$workflow.launchDir/${params.reference_dir}/class.map"):
+    line = line.strip().split()
+    if line[0] == cog_base:
+        os.link("%s_taxid.map" % line[1],  "tax.map")
+
 tree = parse_newick("$tree")
 set_node_style(tree, node_style_basic)
 with open("tax.map", 'rb') as pickled_map:

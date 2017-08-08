@@ -46,6 +46,8 @@ IDs = Channel.from(file(params.project_list).readLines())
 EggNOGIDs = Channel.from(file(params.reference_classes).readLines())
 megan_eggnog_map = Channel.from(file(params.megan_eggnog_map))
 
+// println(file(megan_eggnog_map.first()).isEmpty())
+
 /*******************************************************************************
 ******************** Download and Prepare Section ******************************
 *******************************************************************************/
@@ -87,6 +89,7 @@ process downloadFastQ {
     file "*.fastq.gz" into fastq_files mode flatten
 
     publishDir params.queries_dir
+    maxForks 2
 
     script:
     fastq_file = new File(params.fastq)
@@ -117,10 +120,11 @@ process downloadEggNOG {
     file "${id}.aln" into EggNOGAlignments
 
     publishDir params.reference_dir, mode: 'copy', overwrite: false
+    maxForks 2
 
     """
-    wget http://eggnogapi.embl.de/nog_data/text/fasta/${id} -O - | gunzip > ${id}.fasta
-    wget http://eggnogapi.embl.de/nog_data/text/raw_alg/${id} -O - | gunzip > ${id}.aln
+    wget http://eggnogapi.embl.de/nog_data/text/fasta/${id} -O - | gunzip > ${id}.fasta || wget http://eggnogapi.embl.de/nog_data/text/fasta/${id} -O ${id}.fasta
+    wget http://eggnogapi.embl.de/nog_data/text/raw_alg/${id} -O - | gunzip > ${id}.aln || wget http://eggnogapi.embl.de/nog_data/text/raw_alg/${id} -O ${id}.aln
     """
 }
 
@@ -142,6 +146,7 @@ process createEggNOGMap {
     file fasta from EggNOGFastas_mapping
 
     // TODO dump eggnog_map or taxmap as python3 binary? to avoid parsing it again later
+    // pickle!
     output:
     file "${fasta.baseName}_eggnog.map" into eggnog_map
     file "${fasta.baseName}_taxid.map" into tax_map
@@ -192,11 +197,12 @@ process alignFastQFiles {
     file "${fq.getName().minus(".fastq.gz")}.daa" into daa_files
 
     //publishDir 'queries', mode: 'copy'
-    cpus = params.cpus
+    cpus params.cpus
+    maxForks 1
 
     script:
     """
-    diamond blastx -q ${fq} --db references.dmnd -f 100 --unal 0 -e 1e-6 --out ${fq.getName().minus(".fastq.gz")}.daa
+    diamond blastx -q ${fq} --db references.dmnd -f 100 --unal 0 -e 1e-6 --out ${fq.getName().minus(".fastq.gz")}.daa --threads ${task.cpus}
     """
 }
 
@@ -240,10 +246,12 @@ process geneCentricAssembly {
     file '*.fasta' into assembled_contigs
 
     publishDir "${params.queries_dir}/${daa.baseName}", mode: 'copy'
+    maxForks 4
+    cpus = params.cpus
 
     script:
     """
-    ${params.gc_assembler} -i ${daa} -fun EGGNOG -id ALL -mic 99 -v --minAvCoverage 2
+    ${params.gc_assembler} -i ${daa} -fun EGGNOG -id ALL -mic 99 -v --minAvCoverage 2 -t ${task.cpus}
     """
 }
 
@@ -260,7 +268,7 @@ process translateDNAtoAA {
     file contig from assembled_contigs.flatten()
 
     output:
-    file '*.faa' into translated_contigs
+    file '*.faa' optional true into translated_contigs
 
     publishDir "${params.queries_dir}/${contig.baseName.minus(~/-.+/)}", mode: 'copy'
 
@@ -283,12 +291,13 @@ process alignContigs {
     file '*.aln' into aligned_contigs
 
     //publishDir 'queries', mode: 'copy'
-    cpus 4
-    // maxForks 1
-
+    cpus params.cpus/4
+    memory '30 GB'
+    maxForks 4
+    script:
     """
-    id=\$(grep "${faa.baseName.minus(~/^.+-/)}" $class_map_concat | cut -f 2)".aln"
-    mafft-fftnsi --adjustdirection --thread ${params.cpus} --addfragments ${faa} \$id > ${faa.baseName}.aln
+    id=\$(grep "^${faa.baseName.minus(~/^.+-/)}\\b" $class_map_concat | cut -f 2)".aln"
+    mafft-fftnsi --adjustdirection --thread ${task.cpus} --addfragments ${faa} \$id > ${faa.baseName}.aln
     """
 }
 
@@ -325,13 +334,13 @@ process buildTreeFromAlignment {
     file "${aln.baseName}.treefile" into trees
 
     publishDir "${params.queries_dir}/${aln.baseName.minus(~/-.+/)}", mode: 'copy'
-    cpus 20
+    cpus params.cpus
 
     script:
     if (params.phylo_method == "iqtree")
       """
       #iqtree-omp -s ${aln} -m LG -bb 1000 -nt 2 -pre ${aln.baseName}
-      /local/two/Software/iqtree-1.6.beta3-Linux/bin/iqtree -fast -s ${aln} -m LG -nt 2 -pre ${aln.baseName}
+      /local/two/Software/iqtree-1.6.beta3-Linux/bin/iqtree -fast -s ${aln} -m LG -nt AUTO -pre ${aln.baseName}
       """
     else if (params.phylo_method == "fasttree")
       """
@@ -353,7 +362,7 @@ process makePDFsFromTrees {
 
     publishDir "${params.queries_dir}/${tree.baseName.minus(~/-.+/)}", mode: 'copy'
 
-    beforeScript = {"ln -s \$(grep ${tree.baseName.minus(~/^.+-/).minus(~/.trim/)} $workflow.launchDir/${params.reference_dir}/class.map | cut -f 2)\"_taxid.map\" tax.map"}
+    // beforeScript = {"ln -s \$(grep '^${tree.baseName.minus(~/^.+-/).minus(~/.trim/)}\\b' $workflow.launchDir/${params.reference_dir}/class.map | cut -f 2)\"_taxid.map\" tax.map"}
 
     script:
     template 'makePDFfromTree.py'
