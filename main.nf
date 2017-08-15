@@ -161,7 +161,7 @@ process createEggNOGMap {
 */
 eggnog_map_concat = eggnog_map.collectFile(name: 'eggnog.syn', storeDir: params.reference_dir)
 // tax_map_concat = tax_map.collectFile(name: 'tax.syn', storeDir: params.reference_dir)
-class_map_concat = class_map.collectFile(name: 'class.map', storeDir: params.reference_dir)
+class_map.collectFile(name: 'class.map', storeDir: params.reference_dir).into{class_map_concat; class_map_concat_copy}
 
 /*
   prepare the diamond database from the concatenated fastA file
@@ -224,6 +224,7 @@ process meganizeDAAFiles {
     file daa into daa_files_meganized
 
     //publishDir 'queries', mode: 'copy', overwrite: true
+
     script:
     """
     mkdir references
@@ -334,13 +335,13 @@ process buildTreeFromAlignment {
     file "${aln.baseName}.treefile" into trees
 
     publishDir "${params.queries_dir}/${aln.baseName.minus(~/-.+/)}", mode: 'copy'
-    cpus params.cpus
+    cpus params.cpus/8
 
     script:
     if (params.phylo_method == "iqtree")
       """
       #iqtree-omp -s ${aln} -m LG -bb 1000 -nt 2 -pre ${aln.baseName}
-      /local/two/Software/iqtree-1.6.beta3-Linux/bin/iqtree -fast -s ${aln} -m LG -nt AUTO -pre ${aln.baseName}
+      iqtree-1.6.beta4 -fast -s ${aln} -m LG -nt AUTO -pre ${aln.baseName}
       """
     else if (params.phylo_method == "fasttree")
       """
@@ -354,6 +355,7 @@ process makePDFsFromTrees {
     input:
     file tree from treesVisualize
     file '*' from tax_map.collect()
+    file '*' from class_map_concat_copy.first()
 
     output:
     file "${tree.baseName}.pdf" into pdfs
@@ -386,7 +388,7 @@ decisions_concat = decisions.collectFile(name: 'decisions.txt', storeDir: params
 //
 // }
 
-
+// code from J. Viklund of SciLifeLab Uppsala
 def grab_git_revision() {
     if ( workflow.commitId ) { // it's run directly from github
         return workflow.commitId
