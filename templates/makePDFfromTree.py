@@ -1,18 +1,22 @@
 #! ${params.python3}
 import sys
-sys.path.append('/local/two/Software/python_lib/')
 from ETE3_Utils import *
 from ETE3_styles import *
 from misc_utils import *
 import ete3
 import pickle
+from xvfbwrapper import Xvfb
+
+vdisplay = Xvfb()
+vdisplay.start()
+
 
 def my_initiate_clades(tree, taxon_clade):
   for l in tree.traverse():
     l.add_feature(pr_name='clade', pr_value=taxon_clade[l.name])
 
 cog_base = "${tree.baseName.minus(~/^.+-/).minus(~/.trim/)}"
-for line in open("$workflow.launchDir/${params.reference_dir}/class.map"):
+for line in open("class.map"):
     line = line.strip().split()
     if line[0] == cog_base:
         os.link("%s_taxid.map" % line[1],  "tax.map")
