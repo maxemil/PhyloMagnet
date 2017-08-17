@@ -349,11 +349,9 @@ process buildTreeFromAlignment {
       """
 }
 
-trees.into{ treesVisualize; treesMagnetize }
-
-process makePDFsFromTrees {
+process magnetizeTrees {
     input:
-    file tree from treesVisualize
+    file tree from trees
     file '*' from tax_map.collect()
     file '*' from class_map_concat_copy.first()
 
@@ -370,23 +368,21 @@ process makePDFsFromTrees {
     template 'makePDFfromTree.py'
 }
 x.subscribe{print it}
-decisions_concat = decisions.collectFile(name: 'decisions.txt', storeDir: params.queries_dir)
-// process magnetizeTrees{
-//     input:
-//     file tree from treesMagnetize
-//
-//     output:
-//
-//     script:
-//     """
-//     #! ${params.python3}
-//
-//     tree = parse_newick("$tree")
-//
-//     """
-//
-//
-// }
+
+decisions_concat = decisions.collectFile(name: 'tree_decisions.txt', storeDir: params.queries_dir)
+
+process decideSamples {
+    input:
+    file tree_decisions from decisions_concat
+
+    output:
+    file "sample_decisions.txt" into sample_decisions
+
+    publishDir "${params.queries_dir}", mode: 'copy'
+
+    script:
+    template "decideSamples.py"
+}
 
 // code from J. Viklund of SciLifeLab Uppsala
 def grab_git_revision() {
