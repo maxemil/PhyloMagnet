@@ -31,6 +31,9 @@ def startup_message() {
     log.info "taxonomic level to be analysed    : $params.taxonomy_level_trees"
     log.info "Use a local fastq file            : $params.fastq"
     log.info "Use run IDs instead of projects   : $params.is_runs"
+    log.info "Lineage(s) to look for            : $params.lineage"
+    log.info ""
+    log.info "Binaries location (use default if singularity image is used)"
     log.info "location of gc-assembler          : $params.gc_assembler"
     log.info "location of daa-meganizer         : $params.daa_meganizer"
     log.info "Python 3 binary used              : $params.python3"
@@ -317,6 +320,7 @@ process trimContigAlignments {
     publishDir "${params.queries_dir}/${aln.baseName.minus(~/-.+/)}", mode: 'copy'
 
     """
+    sed -i -E "/^>/! s/X/-/g"
     trimal -in ${aln} -out ${aln.baseName}.trim.aln -gappyout
     """
 }
