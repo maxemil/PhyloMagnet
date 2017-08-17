@@ -1,10 +1,5 @@
-# on singularity >= 2.3.1 dev (order of sections matter!)
 Bootstrap: docker
 From: finalduty/archlinux:daily
-
-
-%setup
-cp MEGAN6-install.exp $SINGULARITY_ROOTFS
 
 %post
 
@@ -18,13 +13,12 @@ pacman -Syu --noconfirm
 pacman -S --noconfirm base-devel jdk git wget expect tk python-pyqt4
 
 ######## MEGAN6 ########
-cp MEGAN6-install.exp /usr/local/
 cd /usr/local/
 
 wget http://ab.inf.uni-tuebingen.de/data/software/megan6/download/MEGAN_Community_unix_6_8_12.sh
 
-chmod +x MEGAN6-install.exp
-./MEGAN6-install.exp
+chmod +x MEGAN_Community_unix_6_8_12.sh
+./MEGAN_Community_unix_6_8_12.sh -q
 
 ######## python ########
 pacman -S --noconfirm python3 python-pip
@@ -86,7 +80,8 @@ trimal --version
 mafft --version
 diamond version
 fastq-dump --version
-
+FastTree
+iqtree-1.6.beta4 -h
 
 %labels
 Maintainer	max-emil.schon@icm.uu.se

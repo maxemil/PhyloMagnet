@@ -33,6 +33,8 @@ drwxr-xr-x 1 MaxEmil users      52 Apr 28 13:10 work
 * alternatively use iqtree using the reference eggnog tree as a constraint
   * new -fast option in 1.6.3 beta!  
 * combine all samples of a project into one tree?
+* make usage of certain parts available as well (create Channels only if input is given, else don't execute processes)
+
 
 
 ## comparison to PhyloSift
