@@ -93,6 +93,7 @@ process downloadFastQ {
 
     publishDir params.queries_dir
     maxForks 2
+    cpus 1
 
     script:
     fastq_file = new File(params.fastq)
@@ -202,6 +203,7 @@ process alignFastQFiles {
     //publishDir 'queries', mode: 'copy'
     cpus params.cpus
     maxForks 1
+    cache 'deep'
 
     script:
     """
@@ -320,7 +322,7 @@ process trimContigAlignments {
     publishDir "${params.queries_dir}/${aln.baseName.minus(~/-.+/)}", mode: 'copy'
 
     """
-    sed -i -E "/^>/! s/X/-/g"
+    sed -i -E "/^>/! s/X/-/g" ${aln}
     trimal -in ${aln} -out ${aln.baseName}.trim.aln -gappyout
     """
 }

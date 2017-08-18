@@ -68,3 +68,5 @@ tree.render("${tree.baseName}.pdf", tree_style=ts)
 
 with open('decision.txt', 'w') as decision:
     decision.write("\\t".join(["$tree","$params.lineage", str(lineage_present), ";".join(candidate_contigs)]) + "\\n")
+
+vdisplay.stop()
