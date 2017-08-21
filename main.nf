@@ -44,8 +44,12 @@ def startup_message() {
 startup_message()
 
 // reads a list of Bioproject IDs, but testing only on one single ID
-IDs = Channel.from(file(params.project_list).readLines())
-// IDs = Channel.from('PRJNA104935')
+if (params.fastq) {
+    IDs = Channel.from(params.fastq)
+}else {
+    IDs = Channel.from(file(params.project_list).readLines())
+}
+
 EggNOGIDs = Channel.from(file(params.reference_classes).readLines())
 megan_eggnog_map = Channel.from(file(params.megan_eggnog_map))
 
