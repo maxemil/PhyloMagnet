@@ -10,7 +10,7 @@ echo "SigLevel = Never" >> /etc/pacman.conf
 echo "Server = https://lambda.informatik.uni-tuebingen.de/repo/mypkgs/" >> /etc/pacman.conf
 
 pacman -Syu --noconfirm
-pacman -S --noconfirm base-devel jdk git wget expect tk python-pyqt4
+pacman -S --noconfirm base-devel jdk git wget expect tk python-pyqt4 vim
 
 ######## MEGAN6 ########
 cd /usr/local/

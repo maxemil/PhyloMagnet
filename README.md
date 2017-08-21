@@ -24,6 +24,11 @@ drwxr-xr-x 1 MaxEmil users     354 Apr 28 13:10 references
 drwxr-xr-x 1 MaxEmil users      52 Apr 28 13:10 work
 
 ```
+
+* change memory usage for daa-meganizer and gc-assembler with
+```
+sudo singularity exec --writable PhyloMagnet.img vim /usr/local/megan/MEGAN.vmoptions
+```
 ## Development PLans
 * try including RP15 pipeline, so producing linked contigs for genes (paired end information?)
   * Intergenic space length?
