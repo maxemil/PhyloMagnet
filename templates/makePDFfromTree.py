@@ -6,10 +6,10 @@ from misc_utils import *
 import ete3
 import pickle
 from xvfbwrapper import Xvfb
+import os
 
 vdisplay = Xvfb()
 vdisplay.start()
-
 
 def my_initiate_clades(tree, taxon_clade):
   for l in tree.traverse():
@@ -69,4 +69,5 @@ tree.render("${tree.baseName}.pdf", tree_style=ts)
 with open('decision.txt', 'w') as decision:
     decision.write("\\t".join(["$tree","$params.lineage", str(lineage_present), ";".join(candidate_contigs)]) + "\\n")
 
-vdisplay.stop()
+# explicitly kill the xvfb display, because vdisplay.stop() is not working as expected
+os.system('(sleep 5 && kill -9 %d) &' % vdisplay.proc.pid)
