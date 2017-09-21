@@ -205,9 +205,6 @@ process alignFastQFiles {
     file "${fq.getName().minus(".fastq.gz")}.daa" into daa_files
 
     //publishDir 'queries', mode: 'copy'
-    cpus params.cpus
-    maxForks 1
-    cache 'deep'
 
     script:
     """
@@ -223,7 +220,6 @@ process alignFastQFiles {
   TODO may cause severe memory overhead in the future as we copy files a lot
 */
 process meganizeDAAFiles {
-    stageInMode 'copy'
 
     input:
     file daa from daa_files
@@ -232,6 +228,7 @@ process meganizeDAAFiles {
     output:
     file daa into daa_files_meganized
 
+    stageInMode 'copy'
     //publishDir 'queries', mode: 'copy', overwrite: true
 
     script:
@@ -256,8 +253,6 @@ process geneCentricAssembly {
     file '*.fasta' into assembled_contigs
 
     publishDir "${params.queries_dir}/${daa.baseName}", mode: 'copy'
-    maxForks 4
-    cpus = params.cpus
 
     script:
     """
@@ -301,13 +296,16 @@ process alignContigs {
     file '*.aln' into aligned_contigs
 
     //publishDir 'queries', mode: 'copy'
-    cpus params.cpus/4
-    memory '30 GB'
-    maxForks 4
+
     script:
     """
     id=\$(grep "^${faa.baseName.minus(~/^.+-/)}\\b" $class_map_concat | cut -f 2)".aln"
     mafft-fftnsi --adjustdirection --thread ${task.cpus} --addfragments ${faa} \$id > ${faa.baseName}.aln
+    if [ ! -s ${faa.baseName}.aln ]
+    then
+      echo "the alignment file is empty, presumably mafft crashed and we retry...."
+      rm ${faa.baseName}.aln
+    fi
     """
 }
 
@@ -324,10 +322,12 @@ process trimContigAlignments {
     file "${aln.baseName}.trim.aln" into trimmed_contig_alignments
 
     publishDir "${params.queries_dir}/${aln.baseName.minus(~/-.+/)}", mode: 'copy'
+    // stageInMode 'copy'
 
     """
-    sed -i -E "/^>/! s/X/-/g" ${aln}
-    trimal -in ${aln} -out ${aln.baseName}.trim.aln -gappyout
+    #sed -i -E "/^>/! s/X/-/g" ${aln}
+    sed -E "/^>/! s/X/-/g" ${aln} > ${aln.baseName}.clean
+    trimal -in ${aln.baseName}.clean -out ${aln.baseName}.trim.aln -gappyout
     """
 }
 
@@ -345,13 +345,12 @@ process buildTreeFromAlignment {
     file "${aln.baseName}.treefile" into trees
 
     publishDir "${params.queries_dir}/${aln.baseName.minus(~/-.+/)}", mode: 'copy'
-    cpus params.cpus/8
 
     script:
     if (params.phylo_method == "iqtree")
       """
       #iqtree-omp -s ${aln} -m LG -bb 1000 -nt 2 -pre ${aln.baseName}
-      iqtree-1.6.beta4 -fast -s ${aln} -m LG -nt AUTO -pre ${aln.baseName}
+      iqtree-1.6.beta4 -fast -s ${aln} -m LG -nt ${task.cpus} -pre ${aln.baseName}
       """
     else if (params.phylo_method == "fasttree")
       """
