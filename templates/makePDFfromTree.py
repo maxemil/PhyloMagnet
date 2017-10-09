@@ -47,20 +47,20 @@ for leaf in contigs:
             candidate_contigs.add(leaf.name)
     except ete3.coretype.tree.TreeError:
         print("clade not found in subtree", file=sys.stderr)
-try:
-    leaves = set(tree.iter_leaves())
-    while leaves:
-      node = leaves.pop()
-      mono_clade = get_mono_clade(node)
-      ancestor = get_ancestor(list(mono_clade))
-      if len(mono_clade) > 1 and node.clade:
-        ancestor.name = node.clade
-        for l in mono_clade:
-          leaves.discard(l)
-        for c in ancestor.get_children():
-          ancestor.remove_child(c)
-except AttributeError:
-    print("did not find the attribute clade, because i looked at an internal node", file=sys.stderr)
+# try:
+#     leaves = set(tree.iter_leaves())
+#     while leaves:
+#       node = leaves.pop()
+#       mono_clade = get_mono_clade(node)
+#       ancestor = get_ancestor(list(mono_clade))
+#       if len(mono_clade) > 1 and node.clade:
+#         ancestor.name = node.clade
+#         for l in mono_clade:
+#           leaves.discard(l)
+#         for c in ancestor.get_children():
+#           ancestor.remove_child(c)
+# except AttributeError:
+#     print("did not find the attribute clade, because i looked at an internal node", file=sys.stderr)
 
 tree.ladderize(direction=1)
 ts = tree_style_basic(layout_node_color, "${tree.baseName}")

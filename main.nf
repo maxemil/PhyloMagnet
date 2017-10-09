@@ -365,7 +365,7 @@ process magnetizeTrees {
     file '*' from class_map_concat_copy.first()
 
     output:
-    file "${tree.baseName}.pdf" into pdfs
+    file "${tree.baseName}.pdf" optional true into pdfs
     file 'decision.txt' into decisions
     stdout x
 
