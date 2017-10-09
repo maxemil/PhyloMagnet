@@ -48,10 +48,15 @@ process extractAlignedReads {
 
   output:
   file "${reads.baseName}.aligned.fastq" into selected_reads
+  file "${reads.baseName}.aligned.ids" into selected_ids
+
+  publishDir "${params.outdir}"
 
   script:
   """
-  cut -f1 $sam | sort | uniq > ${reads.baseName}.aligned.ids
+  cut -f1 $sam | sort | uniq | sed "s/\\.[1-2]\$//g" | sort | uniq > ${reads.baseName}.aligned.ids_base
+  sed "s/\$/.1/g" ${reads.baseName}.aligned.ids_base > ${reads.baseName}.aligned.ids
+  sed "s/\$/.2/g" ${reads.baseName}.aligned.ids_base >> ${reads.baseName}.aligned.ids
   seqtk subseq $reads ${reads.baseName}.aligned.ids > ${reads.baseName}.aligned.fastq
   """
 }
@@ -77,6 +82,8 @@ process splitAssemblyFasta {
 
   output:
   file '*.fasta' into contigs_single_fastas
+
+  publishDir "${params.outdir}/assembly", mode: 'copy'
 
   script:
   """
