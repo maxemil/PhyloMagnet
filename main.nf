@@ -45,14 +45,22 @@ startup_message()
 
 // reads a list of Bioproject IDs, but testing only on one single ID
 if (params.fastq) {
-    IDs = Channel.from(params.fastq)
+    ids = Channel.from(params.fastq)
 }else {
-    IDs = Channel.from(file(params.project_list).readLines())
+    ids = Channel.from(file(params.project_list).readLines())
 }
 
-EggNOGIDs = Channel.from(file(params.reference_classes).readLines())
-megan_eggnog_map = Channel.from(file(params.megan_eggnog_map))
+// reads a list of Bioproject IDs, but testi
 
+Channel.from(file(params.reference_classes).readLines()).into { eggNOGIDs; eggNOGIDs_local}
+
+Channel.from(file(params.megan_eggnog_map)).into { megan_eggnog_map; megan_eggnog_map_local }
+
+if (params.local_ref) {
+    local_ref = Channel.fromPath(params.local_ref)
+}else {
+    local_ref = Channel.empty()
+}
 // println(file(megan_eggnog_map.first()).isEmpty())
 
 /*******************************************************************************
@@ -66,7 +74,7 @@ megan_eggnog_map = Channel.from(file(params.megan_eggnog_map))
 */
 process filterRuns {
     input:
-    val projectID from IDs
+    val projectID from ids
 
     output:
     set file('runs.txt'), val(projectID) into project_runs
@@ -115,17 +123,40 @@ process downloadFastQ {
       """
 }
 
+process includeLocalRef  {
+  input:
+  file "*" from local_ref.collect()
+  file ids from eggNOGIDs_local.collectFile(name:'EggNOG_IDs', newLine: true)
+  file megan_eggnog_map from megan_eggnog_map_local.first()
+
+  output:
+  file "*.fasta" into local_ref_eggnog mode flatten
+
+  script:
+  """
+  for f in *.fasta;
+  do
+    ID=\$(comm -3 <(grep -v '^-' $megan_eggnog_map | cut -f2 | cut -d ' ' -f 1 | sort ) <(cat $ids | sort) | tr -d '\t' | shuf -n 1)
+    cp -L \$f \$ID.fasta
+    echo \$ID >> $ids
+  done
+  """
+}
+
+local_ref_eggnog.into {local_ref_eggnog_align; local_ref_eggnog_add}
+
+
 /*
   Download all raw sequence files as well as the untrimmed alignment
   files for all provided EggNOG Ids.
 */
 process downloadEggNOG {
     input:
-    val id from EggNOGIDs
+    val id from eggNOGIDs
 
     output:
-    file "${id}.fasta" into EggNOGFastas
-    file "${id}.aln" into EggNOGAlignments
+    file "${id}.fasta" into eggNOGFastas
+    file "${id}.aln" into eggNOGAlignments
 
     publishDir params.reference_dir, mode: 'copy', overwrite: false
     maxForks 2
@@ -141,8 +172,9 @@ process downloadEggNOG {
   building process needed for meganization.
   Concatenate all fastA into one single references.fasta for diamond alignment
 */
-EggNOGFastas.into {EggNOGFastas_concatenation; EggNOGFastas_mapping }
-concatenated_references = EggNOGFastas_concatenation.collectFile(name: 'references.fasta', storeDir: params.reference_dir)
+
+eggNOGFastas.mix(local_ref_eggnog_add).into {eggNOGFastas_concatenation; eggNOGFastas_mapping }
+concatenated_references = eggNOGFastas_concatenation.collectFile(name: 'references.fasta', storeDir: params.reference_dir)
 
 /*
   create a mapping file of reference sequence ID to EggNOG ID that can be
@@ -151,7 +183,7 @@ concatenated_references = EggNOGFastas_concatenation.collectFile(name: 'referenc
 process createEggNOGMap {
     input:
     file megan_eggnog_map from megan_eggnog_map.first()
-    file fasta from EggNOGFastas_mapping
+    file fasta from eggNOGFastas_mapping
 
     // TODO dump eggnog_map or taxmap as python3 binary? to avoid parsing it again later
     // pickle!
@@ -289,7 +321,7 @@ process translateDNAtoAA {
 process alignContigs {
     input:
     file faa from translated_contigs
-    file reference_alignment from EggNOGAlignments.toList()
+    file reference_alignment from eggNOGAlignments.toList()
     file class_map_concat from class_map_concat.first()
 
     output:
