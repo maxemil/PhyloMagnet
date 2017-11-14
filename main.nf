@@ -52,8 +52,8 @@ if (params.fastq) {
 
 // reads a list of Bioproject IDs, but testi
 
-Channel.from(file(params.reference_classes).readLines()).into { eggNOGIDs; eggNOGIDs_local}
-
+eggNOGIDs = Channel.from(file(params.reference_classes).readLines())
+eggNOGIDs_local = Channel.from(file(params.reference_classes))
 Channel.from(file(params.megan_eggnog_map)).into { megan_eggnog_map; megan_eggnog_map_local }
 
 if (params.local_ref) {
@@ -126,25 +126,46 @@ process downloadFastQ {
 process includeLocalRef  {
   input:
   file "*" from local_ref.collect()
-  file ids from eggNOGIDs_local.collectFile(name:'EggNOG_IDs', newLine: true)
+  file ids from eggNOGIDs_local.first()
   file megan_eggnog_map from megan_eggnog_map_local.first()
 
   output:
   file "*.fasta" into local_ref_eggnog mode flatten
+  file "local_translation.txt" into local_ref_translation
+
+  publishDir params.reference_dir, mode: 'copy'
+  cache 'deep'
 
   script:
   """
+  readlink -f $ids
   for f in *.fasta;
   do
-    ID=\$(comm -3 <(grep -v '^-' $megan_eggnog_map | cut -f2 | cut -d ' ' -f 1 | sort ) <(cat $ids | sort) | tr -d '\t' | shuf -n 1)
+    ID=\$(comm -3 <(grep -v '^-' $megan_eggnog_map | cut -f2 | cut -d ' ' -f 1 | sort ) <(cat $ids | sort) | tr -d '\t' | head -n 1)
     cp -L \$f \$ID.fasta
     echo \$ID >> $ids
+    echo \$(basename \$f)"\t"\$ID >> local_translation.txt
   done
   """
 }
 
 local_ref_eggnog.into {local_ref_eggnog_align; local_ref_eggnog_add}
 
+
+process alignLocalRef {
+  input:
+  file fasta from local_ref_eggnog_align
+
+  output:
+  file "${fasta.baseName}.aln" into local_ref_align
+
+  publishDir params.reference_dir, mode: 'copy'
+
+  script:
+  """
+  mafft-linsi --adjustdirection --thread ${task.cpus} $fasta > ${fasta.baseName}.aln
+  """
+}
 
 /*
   Download all raw sequence files as well as the untrimmed alignment
