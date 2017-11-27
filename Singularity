@@ -10,45 +10,50 @@ echo "SigLevel = Never" >> /etc/pacman.conf
 echo "Server = https://lambda.informatik.uni-tuebingen.de/repo/mypkgs/" >> /etc/pacman.conf
 
 pacman -Syu --noconfirm
-pacman -S --noconfirm base-devel jdk git wget expect tk python-pyqt4 vim
+pacman -S --noconfirm base-devel \
+                      jdk \
+                      git \
+                      wget \
+                      expect \
+                      tk \
+                      python-pyqt4 \
+                      vim \
+                      perl-time-piece \
+                      perl-xml-simple \
+                      perl-digest-md5 \
+                      cpanminus
 
 ######## MEGAN6 ########
 cd /usr/local/
-
 wget http://ab.inf.uni-tuebingen.de/data/software/megan6/download/MEGAN_Community_unix_6_8_12.sh
-
 chmod +x MEGAN_Community_unix_6_8_12.sh
 ./MEGAN_Community_unix_6_8_12.sh -q
 
 ######## python ########
 pacman -S --noconfirm python3 python-pip
-
 pip install biopython ete3 scipy pandas seaborn xvfbwrapper
-
 mkdir /usr/local/custom_python3_lib/
 
 ######## MAFFT #########
 pacman -S --noconfirm mafft
 
 ######## trimal #########
+cd /usr/local
 git clone https://github.com/scapella/trimal.git
-
 cd trimal/source
 make
 ln -s /usr/local/trimal/source/trimal /usr/local/bin/
 
-cd ../..
-
 ######## diamond #########
+cd /usr/local
 mkdir diamond
 cd diamond
 wget http://github.com/bbuchfink/diamond/releases/download/v0.9.9/diamond-linux64.tar.gz
 tar xzf diamond-linux64.tar.gz
 ln -s /usr/local/diamond/diamond /usr/local/bin/
 
-cd ..
-
 ######## SRA toolkit #########
+cd /usr/local
 wget https://ftp-trace.ncbi.nlm.nih.gov/sra/sdk/current/sratoolkit.current-centos_linux64.tar.gz
 tar -xvf sratoolkit.current-centos_linux64.tar.gz
 ln -s /usr/local/sratoolkit.2.8.2-1-centos_linux64/bin/fastq-dump /usr/local/bin/
@@ -65,6 +70,29 @@ wget https://github.com/Cibiv/IQ-TREE/releases/download/v1.6.beta4/iqtree-1.6.be
 tar -xvf iqtree-1.6.beta4-Linux.tar.gz
 ln -s /usr/local/iqtree-1.6.beta4-Linux/bin/iqtree /usr/local/bin/iqtree-1.6.beta4
 
+######## SEQTK #########
+cd /usr/local
+git clone https://github.com/lh3/seqtk.git
+cd seqtk
+make
+ln -s /usr/local/seqtk/seqtk /usr/local/bin/seqtk
+
+######## MEGAHIT #########
+cd /usr/local
+git clone https://github.com/voutcn/megahit.git
+cd megahit
+make
+ln -s /usr/local/megahit/megahit /usr/local/bin/megahit
+
+######## BioPerl #########
+cd /usr/local/
+/usr/bin/vendor_perl/cpanm Bio::Perl
+
+######## PROKKA-partial #########
+cd /usr/local
+git clone https://github.com/jennahd/prokka.git
+for binary in /usr/local/prokka/bin/*; do ln -s $binary /usr/local/bin; done
+prokka --setupdb
 
 %files
 /local/two/Software/python_lib/*.py /usr/local/custom_python3_lib/
@@ -82,6 +110,9 @@ diamond version
 fastq-dump --version
 FastTree
 iqtree-1.6.beta4 -h
+which seqtk
+megahit --version
+prokka --version
 
 %labels
 Maintainer	max-emil.schon@icm.uu.se
