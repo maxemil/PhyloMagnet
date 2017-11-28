@@ -255,13 +255,13 @@ process alignFastQFiles {
     file 'references.dmnd' from diamond_database.first()
 
     output:
-    file "${fq.getName().minus(".fastq.gz")}.daa" into daa_files
+    file "${fq.simpleName)}.daa" into daa_files
 
     //publishDir 'queries', mode: 'copy'
 
     script:
     """
-    diamond blastx -q ${fq} --db references.dmnd -f 100 --unal 0 -e 1e-6 --out ${fq.getName().minus(".fastq.gz")}.daa --threads ${task.cpus}
+    diamond blastx -q ${fq} --db references.dmnd -f 100 --unal 0 -e 1e-6 --out ${fq.simpleName}.daa --threads ${task.cpus}
     """
 }
 
@@ -328,7 +328,7 @@ process translateDNAtoAA {
     output:
     file '*.faa' optional true into translated_contigs
 
-    publishDir "${params.queries_dir}/${contig.baseName.minus(~/-.+/)}", mode: 'copy'
+    publishDir "${params.queries_dir}/${contig.simpleName}", mode: 'copy'
 
     script:
     template 'translateDNAtoAA.py'
@@ -352,7 +352,7 @@ process alignContigs {
 
     script:
     """
-    id=\$(grep "^${faa.baseName.minus(~/^.+-/)}\\b" $class_map_concat | cut -f 2)".aln"
+    id=\$(grep "^${faa.simpleName}\\b" $class_map_concat | cut -f 2)".aln"
     mafft-fftnsi --adjustdirection --thread ${task.cpus} --addfragments ${faa} \$id > ${faa.baseName}.aln
     if [ ! -s ${faa.baseName}.aln ]
     then
@@ -374,7 +374,7 @@ process trimContigAlignments {
     output:
     file "${aln.baseName}.trim.aln" into trimmed_contig_alignments
 
-    publishDir "${params.queries_dir}/${aln.baseName.minus(~/-.+/)}", mode: 'copy'
+    publishDir "${params.queries_dir}/${aln.simpleName}", mode: 'copy'
     // stageInMode 'copy'
 
     """
@@ -395,19 +395,19 @@ process buildTreeFromAlignment {
     file aln from trimmed_contig_alignments
 
     output:
-    file "${aln.baseName}.treefile" into trees
+    file "${aln.simpleName}.treefile" into trees
 
-    publishDir "${params.queries_dir}/${aln.baseName.minus(~/-.+/)}", mode: 'copy'
+    publishDir "${params.queries_dir}/${aln.simpleName}", mode: 'copy'
 
     script:
     if (params.phylo_method == "iqtree")
       """
-      #iqtree-omp -s ${aln} -m LG -bb 1000 -nt 2 -pre ${aln.baseName}
-      iqtree-1.6.beta4 -fast -s ${aln} -m LG -nt ${task.cpus} -pre ${aln.baseName}
+      #iqtree-omp -s ${aln} -m LG -bb 1000 -nt 2 -pre ${aln.simpleName}
+      iqtree-1.6.beta4 -fast -s ${aln} -m LG -nt ${task.cpus} -pre ${aln.simpleName}
       """
     else if (params.phylo_method == "fasttree")
       """
-      FastTree ${aln} > ${aln.baseName}.treefile
+      FastTree ${aln} > ${aln.simpleName}.treefile
       """
 }
 
@@ -422,7 +422,7 @@ process magnetizeTrees {
     file 'decision.txt' into decisions
     stdout x
 
-    publishDir "${params.queries_dir}/${tree.baseName.minus(~/-.+/)}", mode: 'copy'
+    publishDir "${params.queries_dir}/${tree.simpleName}", mode: 'copy'
 
     // beforeScript = {"ln -s \$(grep '^${tree.baseName.minus(~/^.+-/).minus(~/.trim/)}\\b' $workflow.launchDir/${params.reference_dir}/class.map | cut -f 2)\"_taxid.map\" tax.map"}
 
