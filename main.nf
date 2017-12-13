@@ -141,7 +141,7 @@ process includeLocalRef  {
   readlink -f $ids
   for f in *.fasta;
   do
-    ID=\$(comm -3 <(grep -v '^-' $megan_eggnog_map | cut -f2 | cut -d ' ' -f 1 | sort ) <(cat $ids | sort) | tr -d '\t' | head -n 1)
+    ID=\$(comm -3 <(grep -v '^-' $megan_eggnog_map | cut -f2 | cut -d ' ' -f 1 | sort ) <(cat $ids | sort) | tr -d '\\t' | head -n 1)
     cp -L \$f \$ID.fasta
     echo \$ID >> $ids
     echo \$(basename \$f)"\t"\$ID >> local_translation.txt
