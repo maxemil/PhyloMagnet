@@ -45,14 +45,22 @@ startup_message()
 
 // reads a list of Bioproject IDs, but testing only on one single ID
 if (params.fastq) {
-    IDs = Channel.from(params.fastq)
+    ids = Channel.from(params.fastq)
 }else {
-    IDs = Channel.from(file(params.project_list).readLines())
+    ids = Channel.from(file(params.project_list).readLines())
 }
 
-EggNOGIDs = Channel.from(file(params.reference_classes).readLines())
-megan_eggnog_map = Channel.from(file(params.megan_eggnog_map))
+// reads a list of Bioproject IDs, but testi
 
+eggNOGIDs = Channel.from(file(params.reference_classes).readLines())
+eggNOGIDs_local = Channel.from(file(params.reference_classes))
+Channel.from(file(params.megan_eggnog_map)).into { megan_eggnog_map; megan_eggnog_map_local }
+
+if (params.local_ref) {
+    local_ref = Channel.fromPath(params.local_ref)
+}else {
+    local_ref = Channel.empty()
+}
 // println(file(megan_eggnog_map.first()).isEmpty())
 
 /*******************************************************************************
@@ -66,7 +74,7 @@ megan_eggnog_map = Channel.from(file(params.megan_eggnog_map))
 */
 process filterRuns {
     input:
-    val projectID from IDs
+    val projectID from ids
 
     output:
     set file('runs.txt'), val(projectID) into project_runs
@@ -115,17 +123,61 @@ process downloadFastQ {
       """
 }
 
+process includeLocalRef  {
+  input:
+  file "*" from local_ref.collect()
+  file ids from eggNOGIDs_local.first()
+  file megan_eggnog_map from megan_eggnog_map_local.first()
+
+  output:
+  file "*.fasta" into local_ref_eggnog mode flatten
+  file "local_translation.txt" into local_ref_translation
+
+  publishDir params.reference_dir, mode: 'copy'
+  cache 'deep'
+
+  script:
+  """
+  readlink -f $ids
+  for f in *.fasta;
+  do
+    ID=\$(comm -3 <(grep -v '^-' $megan_eggnog_map | cut -f2 | cut -d ' ' -f 1 | sort ) <(cat $ids | sort) | tr -d '\\t' | head -n 1)
+    cp -L \$f \$ID.fasta
+    echo \$ID >> $ids
+    echo \$(basename \$f)"\t"\$ID >> local_translation.txt
+  done
+  """
+}
+
+local_ref_eggnog.into {local_ref_eggnog_align; local_ref_eggnog_add}
+
+
+process alignLocalRef {
+  input:
+  file fasta from local_ref_eggnog_align
+
+  output:
+  file "${fasta.baseName}.aln" into local_ref_align
+
+  publishDir params.reference_dir, mode: 'copy'
+
+  script:
+  """
+  mafft-linsi --adjustdirection --thread ${task.cpus} $fasta > ${fasta.baseName}.aln
+  """
+}
+
 /*
   Download all raw sequence files as well as the untrimmed alignment
   files for all provided EggNOG Ids.
 */
 process downloadEggNOG {
     input:
-    val id from EggNOGIDs
+    val id from eggNOGIDs
 
     output:
-    file "${id}.fasta" into EggNOGFastas
-    file "${id}.aln" into EggNOGAlignments
+    file "${id}.fasta" into eggNOGFastas
+    file "${id}.aln" into eggNOGAlignments
 
     publishDir params.reference_dir, mode: 'copy', overwrite: false
     maxForks 2
@@ -141,8 +193,9 @@ process downloadEggNOG {
   building process needed for meganization.
   Concatenate all fastA into one single references.fasta for diamond alignment
 */
-EggNOGFastas.into {EggNOGFastas_concatenation; EggNOGFastas_mapping }
-concatenated_references = EggNOGFastas_concatenation.collectFile(name: 'references.fasta', storeDir: params.reference_dir)
+
+eggNOGFastas.mix(local_ref_eggnog_add).into {eggNOGFastas_concatenation; eggNOGFastas_mapping }
+concatenated_references = eggNOGFastas_concatenation.collectFile(name: 'references.fasta', storeDir: params.reference_dir)
 
 /*
   create a mapping file of reference sequence ID to EggNOG ID that can be
@@ -151,7 +204,7 @@ concatenated_references = EggNOGFastas_concatenation.collectFile(name: 'referenc
 process createEggNOGMap {
     input:
     file megan_eggnog_map from megan_eggnog_map.first()
-    file fasta from EggNOGFastas_mapping
+    file fasta from eggNOGFastas_mapping
 
     // TODO dump eggnog_map or taxmap as python3 binary? to avoid parsing it again later
     // pickle!
@@ -202,13 +255,13 @@ process alignFastQFiles {
     file 'references.dmnd' from diamond_database.first()
 
     output:
-    file "${fq.getName().minus(".fastq.gz")}.daa" into daa_files
+    file "${fq.simpleName)}.daa" into daa_files
 
     //publishDir 'queries', mode: 'copy'
 
     script:
     """
-    diamond blastx -q ${fq} --db references.dmnd -f 100 --unal 0 -e 1e-6 --out ${fq.getName().minus(".fastq.gz")}.daa --threads ${task.cpus}
+    diamond blastx -q ${fq} --db references.dmnd -f 100 --unal 0 -e 1e-6 --out ${fq.simpleName}.daa --threads ${task.cpus}
     """
 }
 
@@ -275,7 +328,7 @@ process translateDNAtoAA {
     output:
     file '*.faa' optional true into translated_contigs
 
-    publishDir "${params.queries_dir}/${contig.baseName.minus(~/-.+/)}", mode: 'copy'
+    publishDir "${params.queries_dir}/${contig.simpleName}", mode: 'copy'
 
     script:
     template 'translateDNAtoAA.py'
@@ -289,7 +342,7 @@ process translateDNAtoAA {
 process alignContigs {
     input:
     file faa from translated_contigs
-    file reference_alignment from EggNOGAlignments.toList()
+    file reference_alignment from eggNOGAlignments.toList()
     file class_map_concat from class_map_concat.first()
 
     output:
@@ -299,7 +352,7 @@ process alignContigs {
 
     script:
     """
-    id=\$(grep "^${faa.baseName.minus(~/^.+-/)}\\b" $class_map_concat | cut -f 2)".aln"
+    id=\$(grep "^${faa.simpleName}\\b" $class_map_concat | cut -f 2)".aln"
     mafft-fftnsi --adjustdirection --thread ${task.cpus} --addfragments ${faa} \$id > ${faa.baseName}.aln
     if [ ! -s ${faa.baseName}.aln ]
     then
@@ -321,7 +374,7 @@ process trimContigAlignments {
     output:
     file "${aln.baseName}.trim.aln" into trimmed_contig_alignments
 
-    publishDir "${params.queries_dir}/${aln.baseName.minus(~/-.+/)}", mode: 'copy'
+    publishDir "${params.queries_dir}/${aln.simpleName}", mode: 'copy'
     // stageInMode 'copy'
 
     """
@@ -342,19 +395,19 @@ process buildTreeFromAlignment {
     file aln from trimmed_contig_alignments
 
     output:
-    file "${aln.baseName}.treefile" into trees
+    file "${aln.simpleName}.treefile" into trees
 
-    publishDir "${params.queries_dir}/${aln.baseName.minus(~/-.+/)}", mode: 'copy'
+    publishDir "${params.queries_dir}/${aln.simpleName}", mode: 'copy'
 
     script:
     if (params.phylo_method == "iqtree")
       """
-      #iqtree-omp -s ${aln} -m LG -bb 1000 -nt 2 -pre ${aln.baseName}
-      iqtree-1.6.beta4 -fast -s ${aln} -m LG -nt ${task.cpus} -pre ${aln.baseName}
+      #iqtree-omp -s ${aln} -m LG -bb 1000 -nt 2 -pre ${aln.simpleName}
+      iqtree-1.6.beta4 -fast -s ${aln} -m LG -nt ${task.cpus} -pre ${aln.simpleName}
       """
     else if (params.phylo_method == "fasttree")
       """
-      FastTree ${aln} > ${aln.baseName}.treefile
+      FastTree ${aln} > ${aln.simpleName}.treefile
       """
 }
 
@@ -369,7 +422,7 @@ process magnetizeTrees {
     file 'decision.txt' into decisions
     stdout x
 
-    publishDir "${params.queries_dir}/${tree.baseName.minus(~/-.+/)}", mode: 'copy'
+    publishDir "${params.queries_dir}/${tree.simpleName}", mode: 'copy'
 
     // beforeScript = {"ln -s \$(grep '^${tree.baseName.minus(~/^.+-/).minus(~/.trim/)}\\b' $workflow.launchDir/${params.reference_dir}/class.map | cut -f 2)\"_taxid.map\" tax.map"}
 

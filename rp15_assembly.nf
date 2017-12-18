@@ -1,10 +1,5 @@
 #!/usr/bin/env nextflow
 
-params.references = ""
-params.reads = ""
-params.phylo_method = "fasttree"
-params.outdir = "results"
-
 references = Channel.fromPath(params.references)
 Channel.fromPath(params.reads).into{reads; reads_extraction}
 
@@ -26,7 +21,7 @@ process makeDiamondDb {
 
 process alignReads {
   input:
-  file index from diamond_index.first()
+  file index from diamond_index
   file reads
 
   output:
@@ -72,7 +67,7 @@ process assembleAlignedReads {
 
   script:
   """
-  /local/two/Software/megahit/megahit -r $selected_reads -t 10 --k-min 15 --k-max 151 --k-step 4 -o assembly
+  megahit -r $selected_reads -t 10 --k-min 15 --k-max 151 --k-step 4 -o assembly
   """
 }
 
@@ -87,7 +82,7 @@ process splitAssemblyFasta {
 
   script:
   """
-  #! /usr/local/bin/anapy3
+  #! /usr/bin/python3
   from Bio import SeqIO
 
   for rec in SeqIO.parse('final.contigs.fa', 'fasta'):
@@ -107,7 +102,7 @@ process predictGenes {
 
   script:
   """
-  /local/two/Software/prokka-partial/bin/prokka --outdir PROKKA \
+  prokka --outdir PROKKA \
             --partialgenes --prefix ${contig.baseName} \
             --locustag ${contig.baseName} $contig
   """
