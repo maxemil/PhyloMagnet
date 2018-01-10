@@ -15,7 +15,7 @@ We provide a singularity container with all necessary tools installed and config
 
 .. code-block:: bash
 
-  VERSION=2.3.1
+  VERSION=2.4
   wget https://github.com/singularityware/singularity/releases/download/$VERSION/singularity-$VERSION.tar.gz
   tar xvf singularity-$VERSION.tar.gz
   cd singularity-$VERSION
@@ -27,6 +27,8 @@ We provide a singularity container with all necessary tools installed and config
 Then, download the container from singularity-hub or build it locally with the singularity file:
 
 .. code-block:: bash
+
+  singularity pull shub://maxemil/PhyloMagnet:latest
 
   sudo singularity build PhyloMagnet.img Singularity
 
