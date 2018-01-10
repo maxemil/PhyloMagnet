@@ -108,7 +108,7 @@ trimal --version
 mafft --version
 diamond version
 fastq-dump --version
-FastTree
+which FastTree
 iqtree-1.6.beta4 -h
 which seqtk
 megahit --version
