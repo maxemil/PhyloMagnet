@@ -467,13 +467,13 @@ def grab_git_revision() {
     }
 
     // Try to find the revision directly from git
-    head_pointer_file = file("${workflow.projectDir}/../.git/HEAD")
+    head_pointer_file = file("${workflow.projectDir}/.git/HEAD")
     if ( ! head_pointer_file.exists() ) {
         return ''
     }
     ref = head_pointer_file.newReader().readLine().tokenize()[1]
 
-    ref_file = file("${workflow.projectDir}/../.git/$ref")
+    ref_file = file("${workflow.projectDir}/.git/$ref")
     if ( ! ref_file.exists() ) {
         return ''
     }
