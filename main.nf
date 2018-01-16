@@ -80,6 +80,7 @@ process filterRuns {
     set file('runs.txt'), val(projectID) into project_runs
 
     errorStrategy 'ignore'
+    tag "$projectID"
 
     script:
     if (params.is_runs){
@@ -106,6 +107,7 @@ process downloadFastQ {
     publishDir params.queries_dir
     maxForks 2
     cpus 1
+    tag "$x"
 
     script:
     fastq_file = new File(params.fastq)
@@ -160,6 +162,7 @@ process alignLocalRef {
   file "${fasta.baseName}.aln" into local_ref_align
 
   publishDir params.reference_dir, mode: 'copy'
+  tag "${fasta.baseName}"
 
   script:
   """
@@ -181,6 +184,7 @@ process downloadEggNOG {
 
     publishDir params.reference_dir, mode: 'copy', overwrite: false
     maxForks 2
+    tag "$id"
 
     """
     wget http://eggnogapi.embl.de/nog_data/text/fasta/${id} -O - | gunzip > ${id}.fasta || wget http://eggnogapi.embl.de/nog_data/text/fasta/${id} -O ${id}.fasta
@@ -206,6 +210,8 @@ process createEggNOGMap {
     file megan_eggnog_map from megan_eggnog_map.first()
     file fasta from eggNOGFastas_mapping
 
+
+    tag "${fasta.simpleName}"
     // TODO dump eggnog_map or taxmap as python3 binary? to avoid parsing it again later
     // pickle!
     output:
@@ -257,6 +263,7 @@ process alignFastQFiles {
     output:
     file "${fq.simpleName}.daa" into daa_files
 
+    tag "${fq.simpleName}"
     //publishDir 'queries', mode: 'copy'
 
     script:
@@ -282,6 +289,7 @@ process meganizeDAAFiles {
     file daa into daa_files_meganized
 
     stageInMode 'copy'
+    tag "${daa.simpleName}"
     //publishDir 'queries', mode: 'copy', overwrite: true
 
     script:
@@ -305,6 +313,7 @@ process geneCentricAssembly {
     output:
     file '*.fasta' into assembled_contigs
 
+    tag "${daa.simpleName}"
     publishDir "${params.queries_dir}/${daa.baseName}", mode: 'copy'
 
     script:
@@ -328,6 +337,7 @@ process translateDNAtoAA {
     output:
     file '*.faa' optional true into translated_contigs
 
+    tag "${contig.simpleName}"
     publishDir "${params.queries_dir}/${contig.simpleName}", mode: 'copy'
 
     script:
@@ -348,6 +358,7 @@ process alignContigs {
     output:
     file '*.aln' into aligned_contigs
 
+    tag "${faa.baseName}"
     //publishDir 'queries', mode: 'copy'
 
     script:
@@ -376,6 +387,7 @@ process trimContigAlignments {
 
     publishDir "${params.queries_dir}/${aln.baseName.minus(~/-.+/)}", mode: 'copy'
     // stageInMode 'copy'
+    tag "${aln.baseName}"
 
     """
     #sed -i -E "/^>/! s/X/-/g" ${aln}
@@ -398,6 +410,7 @@ process buildTreeFromAlignment {
     file "${aln.simpleName}.treefile" into trees
 
     publishDir "${params.queries_dir}/${aln.simpleName}", mode: 'copy'
+    tag "${aln.simpleName}"
 
     script:
     if (params.phylo_method == "iqtree")
@@ -421,6 +434,7 @@ process magnetizeTrees {
     file "${tree.baseName}.pdf" optional true into pdfs
     file 'decision.txt' into decisions
     stdout x
+    tag "${tree.baseName}"
 
     publishDir "${params.queries_dir}/${tree.simpleName}", mode: 'copy'
 
