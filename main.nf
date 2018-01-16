@@ -255,7 +255,7 @@ process alignFastQFiles {
     file 'references.dmnd' from diamond_database.first()
 
     output:
-    file "${fq.simpleName)}.daa" into daa_files
+    file "${fq.simpleName}.daa" into daa_files
 
     //publishDir 'queries', mode: 'copy'
 
@@ -352,7 +352,7 @@ process alignContigs {
 
     script:
     """
-    id=\$(grep "^${faa.simpleName}\\b" $class_map_concat | cut -f 2)".aln"
+    id=\$(grep "^${faa.baseName.minus(~/^.+-/)}\\b" $class_map_concat | cut -f 2)".aln"
     mafft-fftnsi --adjustdirection --thread ${task.cpus} --addfragments ${faa} \$id > ${faa.baseName}.aln
     if [ ! -s ${faa.baseName}.aln ]
     then
@@ -374,7 +374,7 @@ process trimContigAlignments {
     output:
     file "${aln.baseName}.trim.aln" into trimmed_contig_alignments
 
-    publishDir "${params.queries_dir}/${aln.simpleName}", mode: 'copy'
+    publishDir "${params.queries_dir}/${aln.baseName.minus(~/-.+/)}", mode: 'copy'
     // stageInMode 'copy'
 
     """

@@ -1,8 +1,17 @@
 Bootstrap: docker
 From: finalduty/archlinux:daily
 
-%post
+%files
+/local/two/Software/python_lib/*.py /usr/local/
 
+%labels
+Maintainer	max-emil.schon@icm.uu.se
+
+%environment
+PYTHONPATH='/usr/local/custom_python3_lib/'
+export PYTHONPATH
+
+%post
 ######## base system ########
 echo "Server = http://mirror.de.leaseweb.net/archlinux/\$repo/os/\$arch" >> /etc/pacman.d/mirrorlist
 echo "[lambdait]" >> /etc/pacman.conf
@@ -32,7 +41,8 @@ chmod +x MEGAN_Community_unix_6_8_12.sh
 ######## python ########
 pacman -S --noconfirm python3 python-pip
 pip install biopython ete3 scipy pandas seaborn xvfbwrapper
-mkdir /usr/local/custom_python3_lib/
+mkdir -p /usr/local/custom_python3_lib/
+mv /usr/local/*.py /usr/local/custom_python3_lib/
 
 ######## MAFFT #########
 pacman -S --noconfirm mafft
@@ -94,13 +104,6 @@ git clone https://github.com/jennahd/prokka.git
 for binary in /usr/local/prokka/bin/*; do ln -s $binary /usr/local/bin; done
 prokka --setupdb
 
-%files
-/local/two/Software/python_lib/*.py /usr/local/custom_python3_lib/
-
-%environment
-PYTHONPATH='/usr/local/custom_python3_lib/'
-export PYTHONPATH
-
 %test
 /usr/local/megan/tools/daa-meganizer -h
 /usr/local/megan/tools/gc-assembler -h
@@ -113,6 +116,4 @@ iqtree-1.6.beta4 -h
 which seqtk
 megahit --version
 prokka --version
-
-%labels
-Maintainer	max-emil.schon@icm.uu.se
+python3 -c 'import ETE3_Utils'
