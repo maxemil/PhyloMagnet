@@ -2,7 +2,7 @@ Bootstrap: docker
 From: finalduty/archlinux:daily
 
 %files
-/local/two/Software/python_lib/*.py /usr/local/
+lib/*.py /usr/local/
 
 %labels
 Maintainer	max-emil.schon@icm.uu.se

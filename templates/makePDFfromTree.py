@@ -2,7 +2,6 @@
 import sys
 from ETE3_Utils import *
 from ETE3_styles import *
-from misc_utils import *
 import ete3
 import pickle
 from xvfbwrapper import Xvfb
