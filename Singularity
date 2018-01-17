@@ -116,4 +116,4 @@ iqtree-1.6.beta4 -h
 which seqtk
 megahit --version
 prokka --version
-python3 -c "help('modules')" | grep "ETE3_Utils"
+python3 --version
