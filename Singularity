@@ -3,6 +3,7 @@ From: finalduty/archlinux:daily
 
 %files
 lib/*.py /usr/local/
+MEGAN.vmoptions /usr/local/
 
 %labels
 Maintainer	max-emil.schon@icm.uu.se
@@ -37,6 +38,7 @@ cd /usr/local/
 wget http://ab.inf.uni-tuebingen.de/data/software/megan6/download/MEGAN_Community_unix_6_8_12.sh
 chmod +x MEGAN_Community_unix_6_8_12.sh
 ./MEGAN_Community_unix_6_8_12.sh -q
+mv /usr/local/MEGAN.vmoptions /usr/local/megan/MEGAN.vmoptions
 
 ######## python ########
 pacman -S --noconfirm python3 python-pip
