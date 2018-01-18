@@ -24,13 +24,16 @@ We provide a singularity container with all necessary tools installed and config
   sudo make install
 
 
-Then, download the container from singularity-hub or build it locally with the singularity file:
+Then, download the container from singularity-hub or build it locally with the singularity recipe:
 
 .. code-block:: bash
 
-  singularity pull shub://maxemil/PhyloMagnet:latest
+  singularity pull --name PhyloMagnet.img shub://maxemil/PhyloMagnet:latest
 
   sudo singularity build PhyloMagnet.img Singularity
+
+
+When building the image from the singularity recipe yourself, you can adjust the JVM options for MEGAN by changing the file MEGAN.vmoptions. This is necessary if you are planning to use large FastQ files or need other specific options (especially memory requirements) for the daa-meganizer and the gc-assembler programs.
 
 .. note::
 
