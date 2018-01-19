@@ -99,3 +99,17 @@ def get_clade_names(taxon_taxid, rank):
     for k, v in taxon_clade.items():
         clade_taxa[v].append(k)
     return [clade_taxa, taxon_clade]
+
+
+def get_tax_name_ranked(lineage, rank):
+    """
+    given a lineage array and a tax level, return the name of the taxon at that level
+
+    :param lineage: ete3 object returned from get_lineage
+    :param rank: desired taxonomic rank
+    :return: name corresponding to taxid at the specified level
+    """
+    ncbi = ncbi_taxonomy.NCBITaxa()
+    for l in lineage:
+        if ncbi.get_rank([l])[l] == rank:
+            return ncbi.get_taxid_translator([l])[l]
