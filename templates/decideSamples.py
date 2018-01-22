@@ -5,7 +5,7 @@ from numpy import mean
 
 df = pd.read_csv("$tree_decisions", sep='\\t',
                 names=['tree', 'lineage', 'decision', 'contigs'])
-df['sample'] = df.tree.apply(lambda x: re.sub(pattern='-[0-9]*.trim.treefile',
+df['sample'] = df.tree.apply(lambda x: re.sub(pattern='-[0-9]*.treefile',
                                             repl='', string=x))
 df['decision'] = df['decision'].astype(int)
 sample_decisions = df.pivot_table(columns='lineage', index='sample',
