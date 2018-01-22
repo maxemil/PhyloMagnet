@@ -1,0 +1,17 @@
+dist: trusty
+
+sudo: required
+
+language: java
+
+jdk:
+  - openjdk7
+  - openjdk8
+  - oraclejdk8
+  - oraclejdk9
+
+install:
+  - test/install_trusty.sh
+
+script:
+  - test/run_simple.sh
