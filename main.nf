@@ -197,7 +197,7 @@ process downloadEggNOG {
   building process needed for meganization.
   Concatenate all fastA into one single references.fasta for diamond alignment
 */
-
+ref_alignments = eggNOGAlignments.mix(local_ref_align)
 eggNOGFastas.mix(local_ref_eggnog_add).into {eggNOGFastas_concatenation; eggNOGFastas_mapping }
 concatenated_references = eggNOGFastas_concatenation.collectFile(name: 'references.fasta', storeDir: params.reference_dir)
 
@@ -338,7 +338,7 @@ process translateDNAtoAA {
     file '*.faa' optional true into translated_contigs
 
     tag "${contig.simpleName}"
-    publishDir "${params.queries_dir}/${contig.simpleName}", mode: 'copy'
+    publishDir "${params.queries_dir}/${contig.simpleName.minus(~/-.+/)}", mode: 'copy'
 
     script:
     template 'translateDNAtoAA.py'
@@ -352,7 +352,7 @@ process translateDNAtoAA {
 process alignContigs {
     input:
     file faa from translated_contigs
-    file reference_alignment from eggNOGAlignments.toList()
+    file reference_alignment from ref_alignments.toList()
     file class_map_concat from class_map_concat.first()
 
     output:
@@ -436,7 +436,7 @@ process magnetizeTrees {
     stdout x
     tag "${tree.baseName}"
 
-    publishDir "${params.queries_dir}/${tree.simpleName}", mode: 'copy'
+    publishDir "${params.queries_dir}/${tree.simpleName.minus(~/-.+/)}", mode: 'copy'
 
     // beforeScript = {"ln -s \$(grep '^${tree.baseName.minus(~/^.+-/).minus(~/.trim/)}\\b' $workflow.launchDir/${params.reference_dir}/class.map | cut -f 2)\"_taxid.map\" tax.map"}
 
