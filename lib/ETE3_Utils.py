@@ -113,3 +113,29 @@ def get_tax_name_ranked(lineage, rank):
     for l in lineage:
         if ncbi.get_rank([l])[l] == rank:
             return ncbi.get_taxid_translator([l])[l]
+
+
+def local_check_monophyly(subtree, value, target_attr):
+    """
+    local, modified (and simplified) copy of ete3's check_monophyly function
+
+    :param subtree: subtree to check for monophyly
+    :param value: clade name
+    :param target_attr: name of feature where clade name is stored
+    :return: tuple boolean, type of monophyly and offending leaves
+    """
+    if type(value) == list:
+        raise ValueError("please provide one value at a time!")
+    n2leaves = subtree.get_cached_content()
+    targets = set([leaf for leaf in n2leaves[subtree]
+               if getattr(leaf, target_attr) == value])
+    common = subtree.get_common_ancestor(targets)
+    observed = n2leaves[common]
+    foreign_leaves = set([leaf for leaf in observed
+                      if getattr(leaf, target_attr) != value])
+    if not foreign_leaves:
+        return True, "monophyletic", foreign_leaves
+    elif all([getattr(l, target_attr) == "" for l in foreign_leaves]):
+        return True, "monophyletic", foreign_leaves
+    else:
+        return False, "non-monophyletic", foreign_leaves
