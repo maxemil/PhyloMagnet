@@ -14,7 +14,7 @@ def my_initiate_clades(tree, taxon_clade):
   for l in tree.traverse():
     l.add_feature(pr_name='clade', pr_value=taxon_clade[l.name])
 
-cog_base = "${tree.baseName.minus(~/^.+-/).minus(~/.trim/)}"
+cog_base = "${tree.simpleName.minus(~/^.+-/)}"
 for line in open("class.map"):
     line = line.strip().split()
     if line[0] == cog_base:
@@ -35,31 +35,17 @@ candidate_contigs = set()
 for leaf in contigs:
     subtree = leaf.up
     try:
-        mono_clade = subtree.check_monophyly(values=["$params.lineage"], target_attr='clade', ignore_missing=True)
+        mono_clade = local_check_monophyly(subtree, values="$params.lineage", target_attr='clade')
         if mono_clade[0]:
             print('I found something! I think Contig %s in tree %s belongs to %s' % (leaf.name, "$tree", "$params.lineage"))
             lineage_present = True
             candidate_contigs.add(leaf.name)
-        elif (len(subtree.check_monophyly(values=["$params.lineage"], target_attr='clade', ignore_missing=True)[2]) / len(list(subtree.traverse()))) < 0.15:
+        elif (len(local_check_monophyly(subtree, values="$params.lineage", target_attr='clade')[2]) / len(list(subtree.traverse()))) < 0.15:
             print('I found something! I think Contig %s in tree %s belongs to %s, but its only >85perc monophyletic' % (leaf.name, "$tree", "$params.lineage"))
             lineage_present = True
             candidate_contigs.add(leaf.name)
     except ete3.coretype.tree.TreeError:
         print("clade not found in subtree", file=sys.stderr)
-# try:
-#     leaves = set(tree.iter_leaves())
-#     while leaves:
-#       node = leaves.pop()
-#       mono_clade = get_mono_clade(node)
-#       ancestor = get_ancestor(list(mono_clade))
-#       if len(mono_clade) > 1 and node.clade:
-#         ancestor.name = node.clade
-#         for l in mono_clade:
-#           leaves.discard(l)
-#         for c in ancestor.get_children():
-#           ancestor.remove_child(c)
-# except AttributeError:
-#     print("did not find the attribute clade, because i looked at an internal node", file=sys.stderr)
 
 tree.ladderize(direction=1)
 ts = tree_style_basic(layout_node_color, "${tree.baseName}")
