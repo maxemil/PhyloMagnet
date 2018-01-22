@@ -35,12 +35,12 @@ candidate_contigs = set()
 for leaf in contigs:
     subtree = leaf.up
     try:
-        mono_clade = local_check_monophyly(subtree, values="$params.lineage", target_attr='clade')
+        mono_clade = local_check_monophyly(subtree, value="$params.lineage", target_attr='clade')
         if mono_clade[0]:
             print('I found something! I think Contig %s in tree %s belongs to %s' % (leaf.name, "$tree", "$params.lineage"))
             lineage_present = True
             candidate_contigs.add(leaf.name)
-        elif (len(local_check_monophyly(subtree, values="$params.lineage", target_attr='clade')[2]) / len(list(subtree.traverse()))) < 0.15:
+        elif (len(local_check_monophyly(subtree, value="$params.lineage", target_attr='clade')[2]) / len(list(subtree.traverse()))) < 0.15:
             print('I found something! I think Contig %s in tree %s belongs to %s, but its only >85perc monophyletic' % (leaf.name, "$tree", "$params.lineage"))
             lineage_present = True
             candidate_contigs.add(leaf.name)
