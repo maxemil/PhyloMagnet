@@ -41,7 +41,7 @@ chmod +x MEGAN_Community_unix_6_8_12.sh
 mv /usr/local/MEGAN.vmoptions /usr/local/megan/MEGAN.vmoptions
 
 ######## python ########
-pacman -S --noconfirm python3 python-pip
+pacman -S --noconfirm python3 python-pip xorg-server-xvfb
 pip install biopython ete3 scipy pandas seaborn xvfbwrapper
 mkdir -p /usr/local/custom_python3_lib/
 mv /usr/local/*.py /usr/local/custom_python3_lib/
@@ -82,29 +82,6 @@ wget https://github.com/Cibiv/IQ-TREE/releases/download/v1.6.beta4/iqtree-1.6.be
 tar -xvf iqtree-1.6.beta4-Linux.tar.gz
 ln -s /usr/local/iqtree-1.6.beta4-Linux/bin/iqtree /usr/local/bin/iqtree-1.6.beta4
 
-######## SEQTK #########
-cd /usr/local
-git clone https://github.com/lh3/seqtk.git
-cd seqtk
-make
-ln -s /usr/local/seqtk/seqtk /usr/local/bin/seqtk
-
-######## MEGAHIT #########
-cd /usr/local
-git clone https://github.com/voutcn/megahit.git
-cd megahit
-make
-ln -s /usr/local/megahit/megahit /usr/local/bin/megahit
-
-######## BioPerl #########
-cd /usr/local/
-/usr/bin/vendor_perl/cpanm Bio::Perl
-
-######## PROKKA-partial #########
-cd /usr/local
-git clone https://github.com/jennahd/prokka.git
-for binary in /usr/local/prokka/bin/*; do ln -s $binary /usr/local/bin; done
-prokka --setupdb
 
 %test
 /usr/local/megan/tools/daa-meganizer -h
@@ -115,7 +92,4 @@ diamond version
 fastq-dump --version
 which FastTree
 iqtree-1.6.beta4 -h
-which seqtk
-megahit --version
-prokka --version
 python3 --version
