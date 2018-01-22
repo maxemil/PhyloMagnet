@@ -23,4 +23,6 @@ else
 fi
 }
 
+singularity pull --name PhyloMagnet.simg shub://maxemil/PhyloMagnet:latest
+
 run_simple
