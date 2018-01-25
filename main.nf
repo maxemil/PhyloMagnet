@@ -49,7 +49,8 @@ if (params.fastq) {
 }else {
     ids = Channel.from(file(params.project_list).readLines())
 }
-
+lineage_list = params.lineage.tokenize(',')
+lineage = Channel.from(lineage_list)
 // reads a list of Bioproject IDs, but testi
 
 eggNOGIDs = Channel.from(file(params.reference_classes).readLines())
@@ -409,7 +410,7 @@ process buildTreeFromAlignment {
     output:
     file "${aln.simpleName}.treefile" into trees
 
-    publishDir "${params.queries_dir}/${aln.simpleName}", mode: 'copy'
+    publishDir "${params.queries_dir}/${aln.simpleName.minus(~/-.+/)}", mode: 'copy'
     tag "${aln.simpleName}"
 
     script:
@@ -429,12 +430,13 @@ process magnetizeTrees {
     file tree from trees
     file '*' from tax_map.collect()
     file '*' from class_map_concat_copy.first()
+    each lineage from lineage
 
     output:
     file "${tree.baseName}.pdf" optional true into pdfs
     file 'decision.txt' into decisions
     stdout x
-    tag "${tree.baseName}"
+    tag "${tree.baseName} - $lineage"
 
     publishDir "${params.queries_dir}/${tree.simpleName.minus(~/-.+/)}", mode: 'copy'
 

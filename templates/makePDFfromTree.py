@@ -35,13 +35,13 @@ candidate_contigs = set()
 for leaf in contigs:
     subtree = leaf.up
     try:
-        mono_clade = local_check_monophyly(subtree, value="$params.lineage", target_attr='clade')
+        mono_clade = local_check_monophyly(subtree, value="$lineage", target_attr='clade')
         if mono_clade[0]:
-            print('I found something! I think Contig %s in tree %s belongs to %s' % (leaf.name, "$tree", "$params.lineage"))
+            print('I found something! I think Contig %s in tree %s belongs to %s' % (leaf.name, "$tree", "$lineage"))
             lineage_present = True
             candidate_contigs.add(leaf.name)
-        elif (len(local_check_monophyly(subtree, value="$params.lineage", target_attr='clade')[2]) / len(list(subtree.traverse()))) < 0.15:
-            print('I found something! I think Contig %s in tree %s belongs to %s, but its only >85perc monophyletic' % (leaf.name, "$tree", "$params.lineage"))
+        elif (len(local_check_monophyly(subtree, value="$lineage", target_attr='clade')[2]) / len(list(subtree.traverse()))) < 0.15:
+            print('I found something! I think Contig %s in tree %s belongs to %s, but its only >85perc monophyletic' % (leaf.name, "$tree", "$lineage"))
             lineage_present = True
             candidate_contigs.add(leaf.name)
     except ete3.coretype.tree.TreeError:
@@ -52,7 +52,7 @@ ts = tree_style_basic(layout_node_color, "${tree.baseName}")
 tree.render("${tree.baseName}.pdf", tree_style=ts)
 
 with open('decision.txt', 'w') as decision:
-    decision.write("\\t".join(["$tree","$params.lineage", str(lineage_present), ";".join(candidate_contigs)]) + "\\n")
+    decision.write("\\t".join(["$tree","$lineage", str(lineage_present), ";".join(candidate_contigs)]) + "\\n")
 
 # explicitly kill the xvfb display, because vdisplay.stop() is not working as expected
 os.system('(sleep 5 && kill -9 %d) &' % vdisplay.proc.pid)
