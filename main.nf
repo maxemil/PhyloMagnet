@@ -184,7 +184,6 @@ process downloadEggNOG {
     file "${id}.aln" into eggNOGAlignments
 
     publishDir params.reference_dir, mode: 'copy', overwrite: false
-    maxForks 2
     tag "$id"
 
     """
