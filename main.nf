@@ -53,6 +53,8 @@ lineage_list = params.lineage.tokenize(',')
 lineage = Channel.from(lineage_list)
 // reads a list of Bioproject IDs, but testi
 
+rank = Channel.from(params.taxonomy_level_trees)
+
 eggNOGIDs = Channel.from(file(params.reference_classes).readLines())
 eggNOGIDs_local = Channel.from(file(params.reference_classes))
 Channel.from(file(params.megan_eggnog_map)).into { megan_eggnog_map; megan_eggnog_map_local }
@@ -430,6 +432,7 @@ process magnetizeTrees {
     file '*' from tax_map.collect()
     file '*' from class_map_concat_copy.first()
     each lineage from lineage
+    val rank from rank.first()
 
     output:
     file "${tree.baseName}.pdf" optional true into pdfs

@@ -80,6 +80,10 @@ def defaultdict_array():
     return []
 
 
+def defaultdict_defaultdict():
+    return defaultdict(defaultdict_string)
+
+
 def get_clade_names(taxon_taxid, rank):
     """
     For a number of taxa, get the names correspodnign to the taxid

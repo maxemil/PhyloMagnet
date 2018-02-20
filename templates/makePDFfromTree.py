@@ -10,9 +10,11 @@ import os
 vdisplay = Xvfb()
 vdisplay.start()
 
+
 def my_initiate_clades(tree, taxon_clade):
   for l in tree.traverse():
-    l.add_feature(pr_name='clade', pr_value=taxon_clade[l.name])
+    l.add_feature(pr_name='clade', pr_value=taxon_clade[l.name]["$rank"])
+
 
 cog_base = "${tree.simpleName.minus(~/^.+-/)}"
 for line in open("class.map"):
