@@ -91,7 +91,7 @@ process filterRuns {
       echo $projectID > runs.txt
       """
     }else{
-      template 'filterRuns.py'
+      template 'filter_runs.py'
     }
 }
 
@@ -222,7 +222,7 @@ process createEggNOGMap {
     file "${fasta.baseName}.class" into class_map
 
     script:
-    template 'createEggNOGMap.py'
+    template 'create_eggnog_map.py'
 }
 
 /*
@@ -343,7 +343,7 @@ process translateDNAtoAA {
     publishDir "${params.queries_dir}/${contig.simpleName.minus(~/-.+/)}", mode: 'copy'
 
     script:
-    template 'translateDNAtoAA.py'
+    template 'translate_dna_to_aa.py'
 }
 
 
@@ -445,7 +445,7 @@ process magnetizeTrees {
     // beforeScript = {"ln -s \$(grep '^${tree.baseName.minus(~/^.+-/).minus(~/.trim/)}\\b' $workflow.launchDir/${params.reference_dir}/class.map | cut -f 2)\"_taxid.map\" tax.map"}
 
     script:
-    template 'makePDFfromTree.py'
+    template 'magnetize_tree.py'
 }
 x.subscribe{print it}
 
@@ -461,7 +461,7 @@ process decideSamples {
     publishDir "${params.queries_dir}", mode: 'copy'
 
     script:
-    template "decideSamples.py"
+    template "decide_samples.py"
 }
 
 // code from J. Viklund of SciLifeLab Uppsala
