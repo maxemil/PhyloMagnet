@@ -3,4 +3,4 @@
 # -Xmx512m
 # To include another file, uncomment the following line:
 # -include-options [path to other .vmoption file]
--Xmx100G
+-Xmx7G
