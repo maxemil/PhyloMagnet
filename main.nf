@@ -53,7 +53,7 @@ lineage_list = params.lineage.tokenize(',')
 lineage = Channel.from(lineage_list)
 // reads a list of Bioproject IDs, but testi
 
-rank = Channel.from(params.taxonomy_level_trees)
+rank = Channel.from(params.taxonomic_rank)
 
 eggNOGIDs = Channel.from(file(params.reference_classes).readLines())
 eggNOGIDs_local = Channel.from(file(params.reference_classes))
