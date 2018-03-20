@@ -18,7 +18,7 @@ def get_clade_dict(tax_map):
     return taxon_clade_mod
 
 
-eggnog_id = "${fasta.baseName}"
+eggnog_id = "${fasta.simpleName}"
 local_eggnog_map = {}
 with open("${megan_eggnog_map}") as handle:
     for line in handle:

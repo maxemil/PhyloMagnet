@@ -28,7 +28,7 @@ def startup_message() {
     log.info "Phylogenetic method               : $params.phylo_method"
     log.info "number of threads                 : $params.cpus"
     log.info "Map of EggNOG from MEGAN          : $params.megan_eggnog_map"
-    log.info "taxonomic level to be analysed    : $params.taxonomy_level_trees"
+    log.info "taxonomic level to be analysed    : $params.taxonomic_rank"
     log.info "Use a local fastq file            : $params.fastq"
     log.info "Use run IDs instead of projects   : $params.is_runs"
     log.info "Lineage(s) to look for            : $params.lineage"
@@ -143,13 +143,13 @@ process includeLocalRef  {
 
   script:
   """
-  readlink -f $ids
+  cp \$(readlink -f $ids) ${ids.simpleName}_local.txt
   for f in *.fasta;
   do
-    ID=\$(comm -3 <(grep -v '^-' $megan_eggnog_map | cut -f2 | cut -d ' ' -f 1 | sort ) <(cat $ids | sort) | tr -d '\\t' | head -n 1)
-    cp -L \$f \$ID.fasta
-    echo \$ID >> $ids
-    echo \$(basename \$f)"\t"\$ID >> local_translation.txt
+    ID=\$(comm -3 <(grep -v '^-' $megan_eggnog_map | cut -f2 | cut -d ' ' -f 1 | sort ) <(cat ${ids.simpleName}_local.txt | sort) | tr -d '\\t' | head -n 1)
+    cp -L \$f \$ID.\${f%%.*}.fasta
+    echo \$ID >> ${ids.simpleName}_local.txt
+    echo \${f%%.*}"\t"\$ID >> local_translation.txt
   done
   """
 }
@@ -212,14 +212,12 @@ process createEggNOGMap {
     file megan_eggnog_map from megan_eggnog_map.first()
     file fasta from eggNOGFastas_mapping
 
-
-    tag "${fasta.simpleName}"
-    // TODO dump eggnog_map or taxmap as python3 binary? to avoid parsing it again later
-    // pickle!
     output:
     file "${fasta.baseName}_eggnog.map" into eggnog_map
     file "${fasta.baseName}_taxid.map" into tax_map
     file "${fasta.baseName}.class" into class_map
+
+    tag "${fasta.baseName}"
 
     script:
     template 'create_eggnog_map.py'
@@ -230,7 +228,7 @@ process createEggNOGMap {
 */
 eggnog_map_concat = eggnog_map.collectFile(name: 'eggnog.syn', storeDir: params.reference_dir)
 // tax_map_concat = tax_map.collectFile(name: 'tax.syn', storeDir: params.reference_dir)
-class_map.collectFile(name: 'class.map', storeDir: params.reference_dir).into{class_map_concat; class_map_concat_copy}
+class_map.collectFile(name: 'class.map', storeDir: params.reference_dir).into{class_map_concat; class_map_concat_copy; class_map_local}
 
 /*
   prepare the diamond database from the concatenated fastA file
@@ -308,12 +306,13 @@ process meganizeDAAFiles {
   fastA files of the form <runID>-<shortEggNOGID>.fasta
 */
 process geneCentricAssembly {
-
     input:
     file daa from daa_files_meganized
+    file local_ref_translation from local_ref_translation
+    file class_map from class_map_local.first()
 
     output:
-    file '*.fasta' into assembled_contigs
+    file '*.fasta' into assembled_contigs mode flatten
 
     tag "${daa.simpleName}"
     publishDir "${params.queries_dir}/${daa.baseName}", mode: 'copy'
@@ -321,6 +320,12 @@ process geneCentricAssembly {
     script:
     """
     ${params.gc_assembler} -i ${daa} -fun EGGNOG -id ALL -mic 99 -v --minAvCoverage 2 -t ${task.cpus}
+    while read id name ; do
+      mv ${daa.simpleName}-\$id.fasta ${daa.simpleName}-\$name.fasta
+    done < $class_map
+    while read local eggnog ; do
+      mv ${daa.simpleName}-\$eggnog.fasta ${daa.simpleName}-\$local.fasta
+    done < $local_ref_translation
     """
 }
 
@@ -334,7 +339,7 @@ process geneCentricAssembly {
 */
 process translateDNAtoAA {
     input:
-    file contig from assembled_contigs.flatten()
+    file contig from assembled_contigs
 
     output:
     file '*.faa' optional true into translated_contigs
