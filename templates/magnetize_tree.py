@@ -17,10 +17,7 @@ def my_initiate_clades(tree, taxon_clade):
 
 
 cog_base = "${tree.simpleName.minus(~/^.+-/)}"
-for line in open("class.map"):
-    line = line.strip().split()
-    if line[0] == cog_base:
-        os.link("%s_taxid.map" % line[1],  "tax.map")
+os.link("%s_taxid.map" % cog_base,  "tax.map")
 
 tree = parse_newick("$tree")
 set_node_style(tree, node_style_basic)

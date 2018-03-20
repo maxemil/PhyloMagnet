@@ -60,9 +60,9 @@ eggNOGIDs_local = Channel.from(file(params.reference_classes))
 Channel.from(file(params.megan_eggnog_map)).into { megan_eggnog_map; megan_eggnog_map_local }
 
 if (params.local_ref) {
-    local_ref = Channel.fromPath(params.local_ref)
+    Channel.fromPath(params.local_ref).into {local_ref; local_ref_to_align}
 }else {
-    local_ref = Channel.empty()
+    Channel.empty().into {local_ref; local_ref_to_align}
 }
 // println(file(megan_eggnog_map.first()).isEmpty())
 
@@ -154,12 +154,9 @@ process includeLocalRef  {
   """
 }
 
-local_ref_eggnog.into {local_ref_eggnog_align; local_ref_eggnog_add}
-
-
 process alignLocalRef {
   input:
-  file fasta from local_ref_eggnog_align
+  file fasta from local_ref_to_align
 
   output:
   file "${fasta.baseName}.aln" into local_ref_align
@@ -200,7 +197,7 @@ process downloadEggNOG {
   Concatenate all fastA into one single references.fasta for diamond alignment
 */
 ref_alignments = eggNOGAlignments.mix(local_ref_align)
-eggNOGFastas.mix(local_ref_eggnog_add).into {eggNOGFastas_concatenation; eggNOGFastas_mapping }
+eggNOGFastas.mix(local_ref_eggnog).into {eggNOGFastas_concatenation; eggNOGFastas_mapping }
 concatenated_references = eggNOGFastas_concatenation.collectFile(name: 'references.fasta', storeDir: params.reference_dir)
 
 /*
@@ -211,11 +208,12 @@ process createEggNOGMap {
     input:
     file megan_eggnog_map from megan_eggnog_map.first()
     file fasta from eggNOGFastas_mapping
+    file local_ref_translation from local_ref_translation.first()
 
     output:
-    file "${fasta.baseName}_eggnog.map" into eggnog_map
-    file "${fasta.baseName}_taxid.map" into tax_map
-    file "${fasta.baseName}.class" into class_map
+    file "*_eggnog.map" into eggnog_map
+    file "*_taxid.map" into tax_map
+    file "*.class" into class_map
 
     tag "${fasta.baseName}"
 
@@ -227,8 +225,7 @@ process createEggNOGMap {
   concatenate single mapping files and keep track of long/short IDs for EggNOG
 */
 eggnog_map_concat = eggnog_map.collectFile(name: 'eggnog.syn', storeDir: params.reference_dir)
-// tax_map_concat = tax_map.collectFile(name: 'tax.syn', storeDir: params.reference_dir)
-class_map.collectFile(name: 'class.map', storeDir: params.reference_dir).into{class_map_concat; class_map_concat_copy; class_map_local}
+class_map_concat = class_map.collectFile(name: 'class.map', storeDir: params.reference_dir)
 
 /*
   prepare the diamond database from the concatenated fastA file
@@ -308,8 +305,7 @@ process meganizeDAAFiles {
 process geneCentricAssembly {
     input:
     file daa from daa_files_meganized
-    file local_ref_translation from local_ref_translation
-    file class_map from class_map_local.first()
+    file class_map from class_map_concat.first()
 
     output:
     file '*.fasta' into assembled_contigs mode flatten
@@ -323,9 +319,6 @@ process geneCentricAssembly {
     while read id name ; do
       mv ${daa.simpleName}-\$id.fasta ${daa.simpleName}-\$name.fasta
     done < $class_map
-    while read local eggnog ; do
-      mv ${daa.simpleName}-\$eggnog.fasta ${daa.simpleName}-\$local.fasta
-    done < $local_ref_translation
     """
 }
 
@@ -360,7 +353,6 @@ process alignContigs {
     input:
     file faa from translated_contigs
     file reference_alignment from ref_alignments.toList()
-    file class_map_concat from class_map_concat.first()
 
     output:
     file '*.aln' into aligned_contigs
@@ -370,8 +362,7 @@ process alignContigs {
 
     script:
     """
-    id=\$(grep "^${faa.baseName.minus(~/^.+-/)}\\b" $class_map_concat | cut -f 2)".aln"
-    mafft-fftnsi --adjustdirection --thread ${task.cpus} --addfragments ${faa} \$id > ${faa.baseName}.aln
+    mafft-fftnsi --adjustdirection --thread ${task.cpus} --addfragments ${faa} ${faa.baseName.tokenize('-')[1]}.aln > ${faa.baseName}.aln
     if [ ! -s ${faa.baseName}.aln ]
     then
       echo "the alignment file is empty, presumably mafft crashed and we retry...."
@@ -435,7 +426,6 @@ process magnetizeTrees {
     input:
     file tree from trees
     file '*' from tax_map.collect()
-    file '*' from class_map_concat_copy.first()
     each lineage from lineage
     val rank from rank.first()
 
@@ -443,11 +433,9 @@ process magnetizeTrees {
     file "${tree.baseName}.pdf" optional true into pdfs
     file 'decision.txt' into decisions
     stdout x
+
     tag "${tree.baseName} - $lineage"
-
     publishDir "${params.queries_dir}/${tree.simpleName.minus(~/-.+/)}", mode: 'copy'
-
-    // beforeScript = {"ln -s \$(grep '^${tree.baseName.minus(~/^.+-/).minus(~/.trim/)}\\b' $workflow.launchDir/${params.reference_dir}/class.map | cut -f 2)\"_taxid.map\" tax.map"}
 
     script:
     template 'magnetize_tree.py'

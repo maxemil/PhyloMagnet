@@ -31,10 +31,11 @@ with open("${megan_eggnog_map}") as handle:
 ncbi = ncbi_taxonomy.NCBITaxa()
 
 tax_map = defaultdict(defaultdict_string)
-with open("${fasta.baseName}_eggnog.map", 'w') as eggnog_map, \
-        open("${fasta.baseName}_taxid.map", 'wb') as tax_map_pickel, \
-        open("${fasta.baseName}.class", 'w') as class_map:
-    class_map.write("%s\\t%s\\n" % (local_eggnog_map[eggnog_id], eggnog_id))
+basename_files = "${fasta.baseName}".split('.')[1] if len("${fasta.baseName}".split('.')) > 1 else "${fasta.baseName}"
+with open("{}_eggnog.map".format(basename_files), 'w') as eggnog_map, \
+        open("{}_taxid.map".format(basename_files), 'wb') as tax_map_pickel, \
+        open("{}.class".format(basename_files), 'w') as class_map:
+    class_map.write("%s\\t%s\\n" % (local_eggnog_map[eggnog_id], basename_files))
     for rec in SeqIO.parse("${fasta}", 'fasta'):
         s = rec.id.split('.')
         eggnog_map.write("%s\\t%s\\n" % (s[1], local_eggnog_map[eggnog_id]))
