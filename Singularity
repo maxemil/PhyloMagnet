@@ -1,5 +1,5 @@
 Bootstrap: docker
-From: finalduty/archlinux:daily
+From: debian:stretch
 
 %files
 lib/*.py /usr/local/
@@ -14,40 +14,46 @@ export PYTHONPATH
 
 %post
 ######## base system ########
-echo "Server = http://mirror.de.leaseweb.net/archlinux/\$repo/os/\$arch" >> /etc/pacman.d/mirrorlist
-echo "[lambdait]" >> /etc/pacman.conf
-echo "SigLevel = Never" >> /etc/pacman.conf
-echo "Server = https://lambda.informatik.uni-tuebingen.de/repo/mypkgs/" >> /etc/pacman.conf
-
-pacman -Syu --noconfirm
-pacman -S --noconfirm base-devel \
-                      jdk \
-                      git \
-                      wget \
-                      expect \
-                      tk \
-                      python-pyqt4 \
-                      vim \
-                      perl-time-piece \
-                      perl-xml-simple \
-                      perl-digest-md5 \
-                      cpanminus
+apt-get update
+apt-get clean
+apt-get install --no-install-recommends -qy \
+                  default-jdk \
+                  git \
+                  wget \
+                  vim \
+                  tk \
+                  python-qt4 \
+                  libxml-simple-perl \
+                  libtime-piece-perl \
+                  libdigest-md5-file-perl \
+                  cpanminus \
+                  python3 \
+                  python3-pip \
+                  python3-setuptools \
+                  python3-dev \
+                  xvfb \
+                  build-essential
 
 ######## MEGAN6 ########
 cd /usr/local/
-wget http://ab.inf.uni-tuebingen.de/data/software/megan6/download/MEGAN_Community_unix_6_8_12.sh
-chmod +x MEGAN_Community_unix_6_8_12.sh
-./MEGAN_Community_unix_6_8_12.sh -q
+wget http://ab.inf.uni-tuebingen.de/data/software/megan6/download/MEGAN_Community_unix_6_11_1.sh
+chmod +x MEGAN_Community_unix_6_11_1.sh
+./MEGAN_Community_unix_6_11_1.sh -q
 mv /usr/local/MEGAN.vmoptions /usr/local/megan/MEGAN.vmoptions
 
 ######## python ########
-pacman -S --noconfirm python3 python-pip xorg-server-xvfb
-pip install biopython ete3 scipy pandas seaborn xvfbwrapper
+pip3 install biopython ete3 scipy pandas seaborn xvfbwrapper
 mkdir -p /usr/local/custom_python3_lib/
 mv /usr/local/*.py /usr/local/custom_python3_lib/
 
 ######## MAFFT #########
-pacman -S --noconfirm mafft
+cd /usr/local/
+wget https://mafft.cbrc.jp/alignment/software/mafft-7.312-without-extensions-src.tgz
+tar xfvz mafft-7.312-without-extensions-src.tgz
+cd  /usr/local/mafft-7.312-without-extensions/core
+make clean
+make
+make install
 
 ######## trimal #########
 cd /usr/local
@@ -60,28 +66,24 @@ ln -s /usr/local/trimal/source/trimal /usr/local/bin/
 cd /usr/local
 mkdir diamond
 cd diamond
-wget http://github.com/bbuchfink/diamond/releases/download/v0.9.9/diamond-linux64.tar.gz
+wget https://github.com/bbuchfink/diamond/releases/download/v0.9.21/diamond-linux64.tar.gz
 tar xzf diamond-linux64.tar.gz
 ln -s /usr/local/diamond/diamond /usr/local/bin/
 
 ######## SRA toolkit #########
-cd /usr/local
-wget https://ftp-trace.ncbi.nlm.nih.gov/sra/sdk/current/sratoolkit.current-centos_linux64.tar.gz
-tar -xvf sratoolkit.current-centos_linux64.tar.gz
-ln -s /usr/local/sratoolkit.2.8.2-1-centos_linux64/bin/fastq-dump /usr/local/bin/
+apt-get install --no-install-recommends -qy sra-toolkit
 
 ######## fasttree #########
 cd /usr/local/bin
 wget http://www.microbesonline.org/fasttree/FastTreeMP
 chmod +x FastTreeMP
-ln -s /usr/local/bin/FastTreeMP /usr/local/bin/FastTree
+cp FastTreeMP FastTree
 
 ######## IQtree #########
 cd /usr/local
-wget https://github.com/Cibiv/IQ-TREE/releases/download/v1.6.beta4/iqtree-1.6.beta4-Linux.tar.gz
-tar -xvf iqtree-1.6.beta4-Linux.tar.gz
-ln -s /usr/local/iqtree-1.6.beta4-Linux/bin/iqtree /usr/local/bin/iqtree-1.6.beta4
-
+wget https://github.com/Cibiv/IQ-TREE/releases/download/v1.6.3/iqtree-1.6.3-Linux.tar.gz
+tar -xvf iqtree-1.6.3-Linux.tar.gz
+ln -s /usr/local/iqtree-1.6.3-Linux/bin/iqtree /usr/local/bin/iqtree
 
 %test
 /usr/local/megan/tools/daa-meganizer -h
@@ -91,5 +93,5 @@ mafft --version
 diamond version
 fastq-dump --version
 which FastTree
-iqtree-1.6.beta4 -h
+iqtree -h
 python3 --version

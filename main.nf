@@ -59,12 +59,7 @@ eggNOGIDs = Channel.from(file(params.reference_classes).readLines())
 eggNOGIDs_local = Channel.from(file(params.reference_classes))
 Channel.from(file(params.megan_eggnog_map)).into { megan_eggnog_map; megan_eggnog_map_local }
 
-if (params.local_ref) {
-    Channel.fromPath(params.local_ref).into {local_ref; local_ref_to_align}
-}else {
-    Channel.empty().into {local_ref; local_ref_to_align}
-}
-// println(file(megan_eggnog_map.first()).isEmpty())
+optional_channel(params.local_ref).into {local_ref; local_ref_to_align}
 
 /*******************************************************************************
 ******************** Download and Prepare Section ******************************
@@ -413,8 +408,7 @@ process buildTreeFromAlignment {
     script:
     if (params.phylo_method == "iqtree")
       """
-      #iqtree-omp -s ${aln} -m LG -bb 1000 -nt 2 -pre ${aln.simpleName}
-      iqtree-1.6.beta4 -fast -s ${aln} -m LG -nt ${task.cpus} -pre ${aln.simpleName}
+      iqtree -fast -s ${aln} -m LG -nt AUTO -ntmax ${task.cpus} -pre ${aln.simpleName}
       """
     else if (params.phylo_method == "fasttree")
       """
@@ -477,4 +471,20 @@ def grab_git_revision() {
     revision = ref_file.newReader().readLine()
 
     return revision
+}
+
+
+def optional_channel(argument) {
+  if(argument != ""){
+    handle = file( argument )
+    if (argument && handle.exists()) {
+      return Channel.fromPath(argument)
+    }else if (argument) {
+      return Channel.from(argument)
+    }else{
+      return Channel.empty()
+    }
+  }else{
+    return Channel.empty()
+  }
 }
