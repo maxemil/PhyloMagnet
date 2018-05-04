@@ -288,7 +288,7 @@ process meganizeDAAFiles {
     """
     mkdir references
     mv ${eggnog_map} references/
-    ${params.daa_meganizer} --in ${daa} -fun EGGNOG -s2eggnog references/${eggnog_map}
+    ${params.daa_meganizer} --in ${daa} -s2eggnog references/${eggnog_map}
     """
 }
 

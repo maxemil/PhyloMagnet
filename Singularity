@@ -11,6 +11,22 @@ Maintainer	max-emil.schon@icm.uu.se
 %environment
 PYTHONPATH='/usr/local/custom_python3_lib/'
 export PYTHONPATH
+VERSION_MEGAN="6.11.1"
+export VERSION_MEGAN
+VERSION_PYTHON3=$(python3 --version | cut -d' ' -f2)
+export VERSION_PYTHON3
+VERSION_MAFFT="7.312"
+export VERSION_MAFFT
+VERSION_TRIMAL=$(trimal --version | cut -d ' ' -f2)
+export VERSION_TRIMAL
+VERSION_DIAMOND="0.9.21"
+export VERSION_DIAMOND
+VERSION_FASTQ_DUMP=$(fastq-dump --version | cut -d':' -f2)
+export VERSION_FASTQ_DUMP
+VERSION_FASTTREE=$(FastTree 2>&1 >/dev/null | grep Usage | cut -d' ' -f 5)
+export VERSION_FASTTREE
+VERSION_IQTREE="1.6.3"
+export VERSION_IQTREE
 
 %post
 ######## base system ########
@@ -22,17 +38,18 @@ apt-get install --no-install-recommends -qy \
                   wget \
                   vim \
                   tk \
-                  python-qt4 \
                   libxml-simple-perl \
                   libtime-piece-perl \
                   libdigest-md5-file-perl \
-                  cpanminus \
                   python3 \
                   python3-pip \
                   python3-setuptools \
                   python3-dev \
+                  python3-tk \
+                  qt5-default \
                   xvfb \
                   build-essential
+                  # cpanminus \
 
 ######## MEGAN6 ########
 cd /usr/local/
@@ -42,7 +59,7 @@ chmod +x MEGAN_Community_unix_6_11_1.sh
 mv /usr/local/MEGAN.vmoptions /usr/local/megan/MEGAN.vmoptions
 
 ######## python ########
-pip3 install biopython ete3 scipy pandas seaborn xvfbwrapper
+pip3 install wheel biopython ete3 scipy pandas seaborn xvfbwrapper pyqt5
 mkdir -p /usr/local/custom_python3_lib/
 mv /usr/local/*.py /usr/local/custom_python3_lib/
 
@@ -95,3 +112,13 @@ fastq-dump --version
 which FastTree
 iqtree -h
 python3 --version
+
+%runscript
+echo "MEGAN6: "$VERSION_MEGAN
+echo "trimal: "$VERSION_TRIMAL
+echo "MAFFT: "$VERSION_MAFFT
+echo "diamond: "$VERSION_DIAMOND
+echo "fastq-dump: "$VERSION_FASTQ_DUMP
+echo "FastTree: "$VERSION_FASTTREE
+echo "IQ-TREE: "$VERSION_IQTREE
+echo "Python3: "$VERSION_PYTHON3
