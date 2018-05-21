@@ -27,6 +27,14 @@ VERSION_FASTTREE=$(FastTree 2>&1 >/dev/null | grep Usage | cut -d' ' -f 5)
 export VERSION_FASTTREE
 VERSION_IQTREE="1.6.3"
 export VERSION_IQTREE
+VERSION_ETE3=$(ete3 version | cut -d' ' -f1)
+export VERSION_ETE3
+VERSION_BIOPYTHON=$(python3 -c 'import Bio; print(Bio.__version__)')
+export VERSION_BIOPYTHON
+VERSION_PANDAS=$(python3 -c 'import pandas; print(pandas.__version__)')
+export VERSION_PANDAS
+VERSION_NUMPY=$(python3 -c 'import numpy; print(numpy.__version__)')
+export VERSION_NUMPY
 
 %post
 ######## base system ########
@@ -112,6 +120,7 @@ fastq-dump --version
 which FastTree
 iqtree -h
 python3 --version
+ete3 version
 
 %runscript
 echo "MEGAN6: "$VERSION_MEGAN
@@ -122,3 +131,7 @@ echo "fastq-dump: "$VERSION_FASTQ_DUMP
 echo "FastTree: "$VERSION_FASTTREE
 echo "IQ-TREE: "$VERSION_IQTREE
 echo "Python3: "$VERSION_PYTHON3
+echo "Biopython: "$VERSION_BIOPYTHON
+echo "Pandas: "$VERSION_PANDAS
+echo "Numpy: "$VERSION_NUMPY
+echo "ETE3: "$VERSION_ETE3
