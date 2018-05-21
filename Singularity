@@ -17,6 +17,8 @@ VERSION_PYTHON3=$(python3 --version | cut -d' ' -f2)
 export VERSION_PYTHON3
 VERSION_TRIMAL=$(trimal --version | cut -d ' ' -f2)
 export VERSION_TRIMAL
+VERSION_MAFFT="7.312"
+export VERSION_MAFFT
 VERSION_DIAMOND="0.9.21"
 export VERSION_DIAMOND
 VERSION_FASTQ_DUMP=$(fastq-dump --version | cut -d':' -f2)
@@ -75,7 +77,8 @@ chmod +x MEGAN_Community_unix_6_11_1.sh
 mv /usr/local/MEGAN.vmoptions /usr/local/megan/MEGAN.vmoptions
 
 ######## python ########
-pip3 install wheel biopython ete3 scipy pandas seaborn xvfbwrapper pyqt5
+pip3 install wheel
+pip3 install biopython ete3 scipy pandas seaborn xvfbwrapper pyqt5
 mkdir -p /usr/local/custom_python3_lib/
 mv /usr/local/*.py /usr/local/custom_python3_lib/
 
@@ -93,6 +96,15 @@ git clone https://github.com/scapella/trimal.git
 cd trimal/source
 make
 ln -s /usr/local/trimal/source/trimal /usr/local/bin/
+
+######## MAFFT #########
+cd /usr/local/
+wget https://mafft.cbrc.jp/alignment/software/mafft-7.312-without-extensions-src.tgz
+tar xfvz mafft-7.312-without-extensions-src.tgz
+cd  /usr/local/mafft-7.312-without-extensions/core
+make clean
+make
+make install
 
 ######## diamond #########
 cd /usr/local
@@ -150,6 +162,7 @@ ln -s /usr/local/gappa/bin/gappa /usr/local/bin/gappa
 /usr/local/megan/tools/daa-meganizer -h
 /usr/local/megan/tools/gc-assembler -h
 trimal --version
+mafft --version
 diamond version
 fastq-dump --version
 which FastTree
@@ -164,6 +177,7 @@ prank -version
 %runscript
 echo "MEGAN6: "$VERSION_MEGAN
 echo "trimal: "$VERSION_TRIMAL
+echo "MAFFT: "$VERSION_MAFFT
 echo "diamond: "$VERSION_DIAMOND
 echo "fastq-dump: "$VERSION_FASTQ_DUMP
 echo "FastTree: "$VERSION_FASTTREE
