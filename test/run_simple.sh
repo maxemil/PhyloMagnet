@@ -9,10 +9,12 @@ function run_simple()
             --lineage "Enterobacterales" \
             --taxonomy_level_trees "order" \
             --megan_eggnog_map eggnog.map \
-            --cpus 2 \
+            --cpus 4 \
             --is_runs true \
             --queries_dir test/queries \
             --reference_dir test/references \
+            --phylo_method 'iqtree -fast' \
+            --align_method 'mafft' \
             -w test/work -resume
 
 if $(grep -q "Enterobacterales\sTrue" test/queries/tree_decisions.txt)
