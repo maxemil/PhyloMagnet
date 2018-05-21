@@ -177,17 +177,24 @@ process alignReferences {
   file fasta from references_to_align
 
   output:
-  file "${fasta.baseName}.best.fas" into ref_alignments
+  file "${fasta.baseName}.aln" into ref_alignments
 
   publishDir params.reference_dir, mode: 'copy'
   tag "${fasta.baseName}"
   stageInMode 'copy'
 
   script:
-  """
-  sed -i 's/\\*//g' $fasta
-  prank -protein -d=$fasta -o=${fasta.baseName} -f=fasta
-  """
+  if (params.align_method == "prank")
+    """
+    sed -i 's/\\*//g' $fasta
+    prank -protein -d=$fasta -o=${fasta.baseName} -f=fasta
+    mv ${fasta.baseName}.best.fas ${fasta.baseName}.aln
+    """
+  else if (params.align_method.startsWith("mafft"))
+    """
+    sed -i 's/\\*//g' $fasta
+    $params.align_method --adjustdirection --thread ${task.cpus}  $fasta > ${fasta.baseName}.aln
+    """
 }
 
 
@@ -339,7 +346,7 @@ process translateDNAtoAA {
     file '*.faa' optional true into translated_contigs
 
     tag "${contig.simpleName}"
-    publishDir "${params.queries_dir}/${contig.simpleName.minus(~/-.+/)}", mode: 'copy'
+    publishDir "${params.queries_dir}/${contig.simpleName.tokenize('-')[0]}", mode: 'copy'
 
     script:
     template 'translate_dna_to_aa.py'
@@ -350,23 +357,41 @@ process buildTreefromReferences {
   file reference_alignment from ref_alignments
 
   output:
-  set file("${reference_alignment.simpleName}.treefile"), file("RAxML_info.file"), file("$reference_alignment") into reference_trees
+  set file("${reference_alignment.simpleName}.treefile"), file("${reference_alignment.simpleName}.modelfile"), file("$reference_alignment") into reference_trees
+
+  publishDir "${params.reference_dir}", mode: 'copy'
+  tag "${reference_alignment.simpleName}"
 
   script:
-  """
-  iqtree -s ${reference_alignment} -m LG+G+F -nt AUTO -ntmax ${task.cpus} -pre ${reference_alignment.simpleName}
-  # raxml-ng -f e --msa ${reference_alignment} --tree ${reference_alignment.simpleName}.treefile --model LG+G+F
-  raxml -f e -s ${reference_alignment} -t ${reference_alignment.simpleName}.treefile -n file -m PROTGAMMALGF
-  """
+  if (params.phylo_method.startsWith("iqtree"))
+    """
+    ${params.phylo_method} -s ${reference_alignment} -m LG+G+F -nt AUTO -ntmax ${task.cpus} -pre ${reference_alignment.simpleName}
+    raxml -f e -s ${reference_alignment} -t ${reference_alignment.simpleName}.treefile -n file -m PROTGAMMALGF
+    mv RAxML_info.file ${reference_alignment.simpleName}.modelfile
+    GTR{0.7/1.8/1.2/0.6/3.0/1.0}+FU{0.25/0.23/0.30/0.22}+G4{0.47}
+    """
+  else if (params.phylo_method == "fasttree")
+    """
+    FastTree -log ${reference_alignment.simpleName}.log -lg ${reference_alignment} > ${reference_alignment.simpleName}.treefile
+    raxml -f e --no-seq-check -s ${reference_alignment} -t ${reference_alignment.simpleName}.treefile -n file -m PROTGAMMALGF
+    mv RAxML_info.file ${reference_alignment.simpleName}.modelfile
+    """
+  else if (params.phylo_method == "raxml")
+    """
+    raxml -f e -s ${reference_alignment} -t ${reference_alignment.simpleName}.treefile -n file -m PROTGAMMALGF
+    """
 }
 
 process alignQueriestoRefMSA {
   input:
   set file(reftree), file(modelinfo), file(refalignment) from reference_trees
-  file contigs from translated_contigs
+  each contigs from translated_contigs
 
   output:
   set file("$reftree"), file("$modelinfo"), file("$refalignment"), file("${contigs.simpleName}.ref.aln") into aligned_queries
+
+  when:
+  "${refalignment.simpleName}" == "${contigs.simpleName.tokenize('-')[1]}"
 
   script:
   """
@@ -417,116 +442,26 @@ process assignContigs {
   """
 }
 
-/*
-  All assembled contigs are aligned to the corresponding EggNOG alignment.
-  This is relatively fast using the mafft --addfragments option.
-*/
-// process alignContigs {
-//     input:
-//     file faa from translated_contigs
-//     file reference_alignment from ref_alignments.toList()
-//
-//     output:
-//     file '*.aln' into aligned_contigs
-//
-//     tag "${faa.baseName}"
-//     //publishDir 'queries', mode: 'copy'
-//
-//     script:
-//     """
-//     mafft-fftnsi --adjustdirection --thread ${task.cpus} --addfragments ${faa} ${faa.baseName.tokenize('-')[1]}.aln > ${faa.baseName}.aln
-//     if [ ! -s ${faa.baseName}.aln ]
-//     then
-//       echo "the alignment file is empty, presumably mafft crashed and we retry...."
-//       rm ${faa.baseName}.aln
-//     fi
-//     """
-// }
 
+process magnetizeTrees {
+    input:
+    file profile from profiles
+    each lineage from lineage
+    val rank from rank.first()
 
-/*
-  Trim all alignments of EggNOG references with contigs.
-  Uses -gappyout for simplicity
-*/
-// process trimContigAlignments {
-//     input:
-//     file aln from aligned_contigs.flatten()
-//
-//     output:
-//     file "${aln.baseName}.trim.aln" into trimmed_contig_alignments
-//
-//     publishDir "${params.queries_dir}/${aln.baseName.minus(~/-.+/)}", mode: 'copy'
-//     // stageInMode 'copy'
-//     tag "${aln.baseName}"
-//
-//     """
-//     #sed -i -E "/^>/! s/X/-/g" ${aln}
-//     sed -E "/^>/! s/X/-/g" ${aln} > ${aln.baseName}.clean
-//     trimal -in ${aln.baseName}.clean -out ${aln.baseName}.trim.aln -gappyout
-//     """
-// }
+    output:
+    file 'decision.txt' into decisions
+    stdout x
 
+    tag "${profile.baseName} - $lineage"
+    publishDir "${params.queries_dir}/${profile.simpleName.tokenize('-')[0]}", mode: 'copy'
 
-/*
-  Make trees for all alignments, either usig fasttree, iqtree-omp or RAxML
-  try producing the same file name containing the tree with support values
-  "<RUN-ID>-<EggNOG-ID>.trim.treefile"
-*/
-// process buildTreeFromAlignment {
-//     input:
-//     file aln from trimmed_contig_alignments
-//
-//     output:
-//     file "${aln.simpleName}.treefile" into trees
-//
-//     publishDir "${params.queries_dir}/${aln.simpleName.minus(~/-.+/)}", mode: 'copy'
-//     tag "${aln.simpleName}"
-//
-//     script:
-//     if (params.phylo_method == "iqtree")
-//       """
-//       iqtree -fast -s ${aln} -m LG -nt AUTO -ntmax ${task.cpus} -pre ${aln.simpleName}
-//       """
-//     else if (params.phylo_method == "fasttree")
-//       """
-//       FastTree ${aln} > ${aln.simpleName}.treefile
-//       """
-// }
-//
-// process magnetizeTrees {
-//     input:
-//     file tree from trees
-//     file '*' from tax_map.collect()
-//     each lineage from lineage
-//     val rank from rank.first()
-//
-//     output:
-//     file "${tree.baseName}.pdf" optional true into pdfs
-//     file 'decision.txt' into decisions
-//     stdout x
-//
-//     tag "${tree.baseName} - $lineage"
-//     publishDir "${params.queries_dir}/${tree.simpleName.minus(~/-.+/)}", mode: 'copy'
-//
-//     script:
-//     template 'magnetize_tree.py'
-// }
-// x.subscribe{print it}
-//
-// decisions_concat = decisions.collectFile(name: 'tree_decisions.txt', storeDir: params.queries_dir)
-//
-// process decideSamples {
-//     input:
-//     file tree_decisions from decisions_concat
-//
-//     output:
-//     file "sample_decisions.txt" into sample_decisions
-//
-//     publishDir "${params.queries_dir}", mode: 'copy'
-//
-//     script:
-//     template "decide_samples.py"
-// }
+    script:
+    template 'magnetize_tree.py'
+}
+x.subscribe{print it}
+
+decisions_concat = decisions.collectFile(name: 'tree_decisions.txt', storeDir: params.queries_dir)
 
 // code from J. Viklund of SciLifeLab Uppsala
 def grab_git_revision() {
