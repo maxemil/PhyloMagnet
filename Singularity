@@ -37,6 +37,14 @@ VERSION_RAXML=$(raxml -version | grep 'RAxML version' | cut -d' ' -f 5)
 export VERSION_RAXML
 VERSION_GAPPA='v0.0.0'
 export VERSION_GAPPA
+VERSION_ETE3=$(ete3 version | cut -d' ' -f1)
+export VERSION_ETE3
+VERSION_BIOPYTHON=$(python3 -c 'import Bio; print(Bio.__version__)')
+export VERSION_BIOPYTHON
+VERSION_PANDAS=$(python3 -c 'import pandas; print(pandas.__version__)')
+export VERSION_PANDAS
+VERSION_NUMPY=$(python3 -c 'import numpy; print(numpy.__version__)')
+export VERSION_NUMPY
 
 %post
 ######## base system ########
@@ -173,6 +181,7 @@ raxml -h
 papara -h
 gappa --help
 prank -version
+ete3 version
 
 %runscript
 echo "MEGAN6: "$VERSION_MEGAN
@@ -188,3 +197,7 @@ echo "RAxML: "$VERSION_RAXML
 echo "epa-ng: "$VERSION_EPA_NG
 echo "PaPaRa: "$VERSION_PAPARA
 echo "gappa: "$VERSION_GAPPA
+echo "Biopython: "$VERSION_BIOPYTHON
+echo "Pandas: "$VERSION_PANDAS
+echo "Numpy: "$VERSION_NUMPY
+echo "ETE3: "$VERSION_ETE3
