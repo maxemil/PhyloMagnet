@@ -59,7 +59,7 @@ eggNOGIDs = Channel.from(file(params.reference_classes).readLines())
 eggNOGIDs_local = Channel.from(file(params.reference_classes))
 Channel.from(file(params.megan_eggnog_map)).into { megan_eggnog_map; megan_eggnog_map_local }
 
-optional_channel(params.local_ref).into {local_ref; local_ref_to_align}
+local_ref = optional_channel(params.local_ref)
 
 /*******************************************************************************
 ******************** Download and Prepare Section ******************************
@@ -169,12 +169,34 @@ process downloadEggNOG {
     """
 }
 
-eggNOGFastas.into {eggNOGFastas_align; eggNOGFastas_mix}
-references_to_align = eggNOGFastas_align.mix(local_ref_to_align)
+references_fastas = eggNOGFastas.mix(local_ref_eggnog)
+
+/*
+  create a mapping file of reference sequence ID to EggNOG ID that can be
+  used as synonyms file in megan
+*/
+process createMappingFiles {
+    input:
+    file megan_eggnog_map from megan_eggnog_map.first()
+    file fasta from references_fastas
+    file local_ref_translation from local_ref_translation
+
+    output:
+    file "*.eggnog.map" into eggnog_map
+    file "*.taxid.map" into tax_map
+    file "*.class" into class_map
+    file "*.unique.fasta" into references_unique_fastas
+
+    tag "${fasta.baseName}"
+
+    script:
+    template 'create_eggnog_map.py'
+}
+references_unique_fastas.into{references_unique_fastas_align; references_unique_fastas_concat}
 
 process alignReferences {
   input:
-  file fasta from references_to_align
+  file fasta from references_unique_fastas_align
 
   output:
   file "${fasta.baseName}.aln" into ref_alignments
@@ -199,34 +221,9 @@ process alignReferences {
 
 
 /*
-  redirect EggNOG fastA files to a concatenation process and to the map
-  building process needed for meganization.
   Concatenate all fastA into one single references.fasta for diamond alignment
 */
-//ref_alignments = eggNOGAlignments.mix(local_ref_aligned)
-eggNOGFastas_mix.mix(local_ref_eggnog).into {eggNOGFastas_concatenation; eggNOGFastas_mapping }
-concatenated_references = eggNOGFastas_concatenation.collectFile(name: 'references.fasta', storeDir: params.reference_dir)
-
-/*
-  create a mapping file of reference sequence ID to EggNOG ID that can be
-  used as synonyms file in megan
-*/
-process createEggNOGMap {
-    input:
-    file megan_eggnog_map from megan_eggnog_map.first()
-    file fasta from eggNOGFastas_mapping
-    file local_ref_translation from local_ref_translation
-
-    output:
-    file "*_eggnog.map" into eggnog_map
-    file "*.taxid.map" into tax_map
-    file "*.class" into class_map
-
-    tag "${fasta.baseName}"
-
-    script:
-    template 'create_eggnog_map.py'
-}
+concatenated_references = references_unique_fastas_concat.collectFile(name: 'references.fasta', storeDir: params.reference_dir)
 
 /*
   concatenate single mapping files and keep track of long/short IDs for EggNOG
@@ -320,7 +317,7 @@ process geneCentricAssembly {
 
     script:
     """
-    ${params.gc_assembler} -i ${daa} -fun EGGNOG -id ALL -mic 99 -v --minAvCoverage 2 -t ${task.cpus}
+    ${params.gc_assembler} -i ${daa} -fun EGGNOG -id ALL -mic 99 -vv --minAvCoverage 2 -t ${task.cpus}
     while read id name ; do
       if [ -e ${daa.simpleName}-\$id.fasta ];
       then
@@ -366,19 +363,18 @@ process buildTreefromReferences {
   if (params.phylo_method.startsWith("iqtree"))
     """
     ${params.phylo_method} -s ${reference_alignment} -m LG+G+F -nt AUTO -ntmax ${task.cpus} -pre ${reference_alignment.simpleName}
-    raxml -f e -s ${reference_alignment} -t ${reference_alignment.simpleName}.treefile -n file -m PROTGAMMALGF
+    raxml -f e -s ${reference_alignment} -t ${reference_alignment.simpleName}.treefile -T ${task.cpus} -n file -m PROTGAMMALGF
     mv RAxML_info.file ${reference_alignment.simpleName}.modelfile
-    GTR{0.7/1.8/1.2/0.6/3.0/1.0}+FU{0.25/0.23/0.30/0.22}+G4{0.47}
     """
   else if (params.phylo_method == "fasttree")
     """
     FastTree -log ${reference_alignment.simpleName}.log -lg ${reference_alignment} > ${reference_alignment.simpleName}.treefile
-    raxml -f e --no-seq-check -s ${reference_alignment} -t ${reference_alignment.simpleName}.treefile -n file -m PROTGAMMALGF
+    raxml -f e -s ${reference_alignment} -t ${reference_alignment.simpleName}.treefile -T ${task.cpus} -n file -m PROTGAMMALGF
     mv RAxML_info.file ${reference_alignment.simpleName}.modelfile
     """
   else if (params.phylo_method == "raxml")
     """
-    raxml -f e -s ${reference_alignment} -t ${reference_alignment.simpleName}.treefile -n file -m PROTGAMMALGF
+    raxml -f e -s ${reference_alignment} -t ${reference_alignment.simpleName}.treefile -T ${task.cpus} -n file -m PROTGAMMALGF
     """
 }
 
@@ -392,6 +388,8 @@ process alignQueriestoRefMSA {
 
   when:
   "${refalignment.simpleName}" == "${contigs.simpleName.tokenize('-')[1]}"
+
+  tag "${contigs.simpleName} - ${refalignment.simpleName}"
 
   script:
   """
@@ -407,6 +405,8 @@ process placeContigsOnRefTree {
 
   output:
   file "${queryalignment.simpleName}.jplace" into placed_contigs
+
+  tag "${queryalignment.simpleName} - ${refalignment.simpleName}"
 
   script:
   """
@@ -430,6 +430,8 @@ process assignContigs {
 
   when:
   "${tax_map.simpleName}" == "${placed_contigs.baseName.tokenize('-')[1]}"
+
+  tag "${placed_contigs.simpleName}"
 
   script:
   """
