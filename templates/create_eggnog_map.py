@@ -72,9 +72,9 @@ def remove_duplicate_seqs(fasta, taxon_clade_mod, tax_map):
                 tax_path = commonprefix(tax_strings)
                 taxon = tax_path[-1].replace(';', '')
                 id = ncbi.get_name_translator([taxon])[taxon][0]
-                seqrec.id = "{}.{}".format(id, taxon.replace(' ', '_').replace('(', '').replace(')', ''))
+                seqrec.id = "{}.{}_{}".format(id, taxon.replace(' ', '_').replace('(', '').replace(')', ''), "_".join(merged_ids))
+                seqrec.description = ""
                 taxon_clade_mod[seqrec.id] = "; ".join(tax_path)
-                seqrec.description = "_".join(merged_ids)
                 seq_rec_dict[seqrec.id] = seqrec
                 tax_map[seqrec.id] = id
             except:

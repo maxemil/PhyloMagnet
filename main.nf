@@ -100,7 +100,7 @@ process downloadFastQ {
     set file('runs.txt'), val(x) from project_runs
 
     output:
-    file "*.fastq.gz" into fastq_files mode flatten
+    file "*.fastq{.gz,}" into fastq_files mode flatten
 
     publishDir params.queries_dir
     maxForks 2
@@ -188,6 +188,7 @@ process createMappingFiles {
     file "*.unique.fasta" into references_unique_fastas
 
     tag "${fasta.baseName}"
+    publishDir params.reference_dir, mode: 'copy'
 
     script:
     template 'create_eggnog_map.py'
@@ -399,9 +400,24 @@ process alignQueriestoRefMSA {
   """
 }
 
-process placeContigsOnRefTree {
+
+process splitAlignmentsRefQuery {
   input:
   set file(reftree), file(modelinfo), file(refalignment), file(queryalignment) from aligned_queries
+
+  output:
+  set file("$reftree"), file("$modelinfo"), file("$refalignment"), file("$queryalignment") into aligned_queries_split
+
+  tag "${queryalignment.simpleName} - ${refalignment.simpleName}"
+
+  script:
+  template 'split_alignments_ref_query.py'
+}
+
+
+process placeContigsOnRefTree {
+  input:
+  set file(reftree), file(modelinfo), file(refalignment), file(queryalignment) from aligned_queries_split
 
   output:
   file "${queryalignment.simpleName}.jplace" into placed_contigs

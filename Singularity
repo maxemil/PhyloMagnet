@@ -86,7 +86,7 @@ mv /usr/local/MEGAN.vmoptions /usr/local/megan/MEGAN.vmoptions
 
 ######## python ########
 pip3 install wheel
-pip3 install biopython ete3 scipy pandas seaborn xvfbwrapper pyqt5
+pip3 install biopython ete3 scipy pandas seaborn xvfbwrapper pyqt5 requests
 mkdir -p /usr/local/custom_python3_lib/
 mv /usr/local/*.py /usr/local/custom_python3_lib/
 
