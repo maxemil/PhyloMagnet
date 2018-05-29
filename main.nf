@@ -44,11 +44,9 @@ def startup_message() {
 startup_message()
 
 // reads a list of Bioproject IDs, but testing only on one single ID
-if (params.fastq) {
-    ids = Channel.from(params.fastq)
-}else {
-    ids = Channel.from(file(params.project_list).readLines())
-}
+
+ids = optional_channel_from_file(params.project_list)
+
 lineage_list = params.lineage.tokenize(',')
 lineage = Channel.from(lineage_list)
 // reads a list of Bioproject IDs, but testi
@@ -59,7 +57,8 @@ eggNOGIDs = Channel.from(file(params.reference_classes).readLines())
 eggNOGIDs_local = Channel.from(file(params.reference_classes))
 Channel.from(file(params.megan_eggnog_map)).into { megan_eggnog_map; megan_eggnog_map_local }
 
-local_ref = optional_channel(params.local_ref)
+local_ref = optional_channel_from_path(params.local_ref)
+fastq_files = optional_channel_from_path(params.fastq)
 
 /*******************************************************************************
 ******************** Download and Prepare Section ******************************
@@ -90,6 +89,7 @@ process filterRuns {
     }
 }
 
+
 /*
   for all valid runs specified in 'runs.txt', download fastQ files (in parallel).
   split reads if paired end data, but keep all in one file for diamond
@@ -100,28 +100,22 @@ process downloadFastQ {
     set file('runs.txt'), val(x) from project_runs
 
     output:
-    file "*.fastq{.gz,}" into fastq_files mode flatten
+    file "*.fastq.gz" into fastq_files_SRA mode flatten
 
     publishDir params.queries_dir
-    maxForks 2
-    cpus 1
     tag "$x"
 
     script:
-    fastq_file = new File(params.fastq)
-    if (fastq_file.exists())
-      """
-      ln -s ${fastq_file.getAbsolutePath()} .
-      """
-    else
-      """
-      #! /usr/bin/env bash
-      while read run; do
-        fastq-dump --gzip --readids --split-spot --skip-technical --clip \$run &
-      done <  runs.txt
-      wait
-      """
+    """
+    #! /usr/bin/env bash
+    while read run; do
+      fastq-dump --gzip --readids --split-spot --skip-technical --clip \$run &
+    done <  runs.txt
+    wait
+    """
 }
+
+fastq_files_all = fastq_files.mix(fastq_files_SRA)
 
 process includeLocalRef  {
   input:
@@ -179,7 +173,6 @@ process createMappingFiles {
     input:
     file megan_eggnog_map from megan_eggnog_map.first()
     file fasta from references_fastas
-    file local_ref_translation from local_ref_translation
 
     output:
     file "*.eggnog.map" into eggnog_map
@@ -193,6 +186,8 @@ process createMappingFiles {
     script:
     template 'create_eggnog_map.py'
 }
+
+
 references_unique_fastas.into{references_unique_fastas_align; references_unique_fastas_concat}
 
 process alignReferences {
@@ -203,20 +198,21 @@ process alignReferences {
   file "${fasta.baseName}.aln" into ref_alignments
 
   publishDir params.reference_dir, mode: 'copy'
-  tag "${fasta.baseName}"
+  tag "${fasta.simpleName}"
   stageInMode 'copy'
 
   script:
   if (params.align_method == "prank")
     """
-    sed -i 's/\\*//g' $fasta
     prank -protein -d=$fasta -o=${fasta.baseName} -f=fasta
-    mv ${fasta.baseName}.best.fas ${fasta.baseName}.aln
+    sed -i '/^>/! s/[*|X]/-/g' ${fasta.baseName}.best.fas
+    trimal -in ${fasta.baseName}.best.fas -out ${fasta.baseName}.aln -gt 0 -fasta
     """
   else if (params.align_method.startsWith("mafft"))
     """
-    sed -i 's/\\*//g' $fasta
-    $params.align_method --adjustdirection --thread ${task.cpus}  $fasta > ${fasta.baseName}.aln
+    $params.align_method --adjustdirection --thread ${task.cpus}  $fasta > ${fasta.baseName}.mafft.aln
+    sed -i '/^>/! s/[*|X]/-/g' ${fasta.baseName}.mafft.aln
+    trimal -in ${fasta.baseName}.mafft.aln -out ${fasta.baseName}.aln -gt 0 -fasta
     """
 }
 
@@ -259,7 +255,7 @@ process diamondMakeDB {
 */
 process alignFastQFiles {
     input:
-    file fq from fastq_files
+    file fq from fastq_files_all
     file 'references.dmnd' from diamond_database.first()
 
     output:
@@ -387,10 +383,11 @@ process alignQueriestoRefMSA {
   output:
   set file("$reftree"), file("$modelinfo"), file("$refalignment"), file("${contigs.simpleName}.ref.aln") into aligned_queries
 
+  tag "${contigs.simpleName} - ${refalignment.simpleName}"
+  publishDir "${params.queries_dir}/${contigs.simpleName.tokenize('-')[0]}", mode: 'copy'
+
   when:
   "${refalignment.simpleName}" == "${contigs.simpleName.tokenize('-')[1]}"
-
-  tag "${contigs.simpleName} - ${refalignment.simpleName}"
 
   script:
   """
@@ -406,7 +403,7 @@ process splitAlignmentsRefQuery {
   set file(reftree), file(modelinfo), file(refalignment), file(queryalignment) from aligned_queries
 
   output:
-  set file("$reftree"), file("$modelinfo"), file("$refalignment"), file("$queryalignment") into aligned_queries_split
+  set file("$reftree"), file("$modelinfo"), file("$refalignment"), file("${queryalignment.simpleName}.queries.aln") into aligned_queries_split
 
   tag "${queryalignment.simpleName} - ${refalignment.simpleName}"
 
@@ -423,6 +420,7 @@ process placeContigsOnRefTree {
   file "${queryalignment.simpleName}.jplace" into placed_contigs
 
   tag "${queryalignment.simpleName} - ${refalignment.simpleName}"
+  publishDir "${params.queries_dir}/${queryalignment.simpleName.tokenize('-')[0]}", mode: 'copy'
 
   script:
   """
@@ -443,11 +441,11 @@ process assignContigs {
   file "${placed_contigs.simpleName}.newick" into placement_tree
 
   publishDir "${params.queries_dir}/${placed_contigs.baseName.tokenize('-')[0]}", mode: 'copy'
+  tag "${placed_contigs.simpleName}"
 
   when:
   "${tax_map.simpleName}" == "${placed_contigs.baseName.tokenize('-')[1]}"
 
-  tag "${placed_contigs.simpleName}"
 
   script:
   """
@@ -504,13 +502,20 @@ def grab_git_revision() {
 }
 
 
-def optional_channel(argument) {
+def optional_channel_from_path(argument) {
+  if(argument != ""){
+    return Channel.fromPath(argument)
+  }else{
+    return Channel.empty()
+  }
+}
+
+
+def optional_channel_from_file(argument) {
   if(argument != ""){
     handle = file( argument )
-    if (argument && handle.exists()) {
-      return Channel.fromPath(argument)
-    }else if (argument) {
-      return Channel.from(argument)
+    if ( handle.exists() ){
+      return  Channel.from(handle.readLines())
     }else{
       return Channel.empty()
     }

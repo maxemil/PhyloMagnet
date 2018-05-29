@@ -50,11 +50,19 @@ def commonprefix(taxon_paths):
     return s1
 
 
+def clean_rec_id(recid):
+    illegal_chars = [":", ",", ")", "(", ";", "]", "[", "'", " "]
+    for c in illegal_chars:
+        recid = recid.replace(c, '')
+    return recid
+
+
 def remove_duplicate_seqs(fasta, taxon_clade_mod, tax_map):
     ncbi = ncbi_taxonomy.NCBITaxa()
     seq_dict = defaultdict(list)
     seq_rec_dict = {}
     for rec in SeqIO.parse(fasta, 'fasta'):
+        rec.id = clean_rec_id(rec.id)
         seq_dict[str(rec.seq)].append(rec.id)
         seq_rec_dict[rec.id] = rec
     for k,v in seq_dict.items():
@@ -72,7 +80,7 @@ def remove_duplicate_seqs(fasta, taxon_clade_mod, tax_map):
                 tax_path = commonprefix(tax_strings)
                 taxon = tax_path[-1].replace(';', '')
                 id = ncbi.get_name_translator([taxon])[taxon][0]
-                seqrec.id = "{}.{}_{}".format(id, taxon.replace(' ', '_').replace('(', '').replace(')', ''), "_".join(merged_ids))
+                seqrec.id = "{}.{}_{}".format(id, clean_rec_id(taxon), "_".join(merged_ids))
                 seqrec.description = ""
                 taxon_clade_mod[seqrec.id] = "; ".join(tax_path)
                 seq_rec_dict[seqrec.id] = seqrec

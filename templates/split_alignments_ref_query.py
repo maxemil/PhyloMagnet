@@ -8,4 +8,4 @@ def run(ref_aln, ref_query_aln, query_aln):
         for rec in queries:
             SeqIO.write(rec, out, 'fasta')
 
-run("$refalignment", "$queryalignment", "${queryalignment.baseName}.queries.aln")
+run("$refalignment", "$queryalignment", "${queryalignment.simpleName}.queries.aln")
