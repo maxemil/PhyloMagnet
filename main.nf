@@ -127,7 +127,7 @@ process includeLocalRef  {
   file "*.fasta" into local_ref_eggnog mode flatten
   file "local_translation.txt" into local_ref_translation
 
-  publishDir params.reference_dir, mode: 'copy'
+  // publishDir params.reference_dir, mode: 'copy'
   cache 'deep'
 
   script:
@@ -142,6 +142,8 @@ process includeLocalRef  {
   done
   """
 }
+local_ref_eggnog.into{local_ref_eggnog_copy; local_ref_eggnog_mix}
+local_ref_eggnog_copy.subscribe{it.copyTo("${params.reference_dir}/${it.baseName.tokenize('.')[1]}/${it.baseName}.fasta")}
 
 /*
   Download all raw sequence files as well as the untrimmed alignment
@@ -155,7 +157,7 @@ process downloadEggNOG {
     file "${id}.fasta" into eggNOGFastas
     // file "${id}.aln" into eggNOGAlignments
 
-    publishDir params.reference_dir, mode: 'copy', overwrite: false
+    publishDir "${params.reference_dir}/$id", mode: 'copy'
     tag "$id"
 
     """
@@ -163,7 +165,7 @@ process downloadEggNOG {
     """
 }
 
-references_fastas = eggNOGFastas.mix(local_ref_eggnog)
+references_fastas = eggNOGFastas.mix(local_ref_eggnog_mix)
 
 /*
   create a mapping file of reference sequence ID to EggNOG ID that can be
@@ -180,8 +182,8 @@ process createMappingFiles {
     file "*.class" into class_map
     file "*.unique.fasta" into references_unique_fastas
 
+    publishDir "${params.reference_dir}/${fasta.baseName.tokenize('.').size() > 1? fasta.baseName.tokenize('.')[1] : fasta.baseName.tokenize('.')[0]}", mode: 'copy'
     tag "${fasta.baseName}"
-    publishDir params.reference_dir, mode: 'copy'
 
     script:
     template 'create_eggnog_map.py'
@@ -189,32 +191,6 @@ process createMappingFiles {
 
 
 references_unique_fastas.into{references_unique_fastas_align; references_unique_fastas_concat}
-
-process alignReferences {
-  input:
-  file fasta from references_unique_fastas_align
-
-  output:
-  file "${fasta.baseName}.aln" into ref_alignments
-
-  publishDir params.reference_dir, mode: 'copy'
-  tag "${fasta.simpleName}"
-  stageInMode 'copy'
-
-  script:
-  if (params.align_method == "prank")
-    """
-    prank -protein -d=$fasta -o=${fasta.baseName} -f=fasta
-    sed -i '/^>/! s/[*|X]/-/g' ${fasta.baseName}.best.fas
-    trimal -in ${fasta.baseName}.best.fas -out ${fasta.baseName}.aln -gt 0 -fasta
-    """
-  else if (params.align_method.startsWith("mafft"))
-    """
-    $params.align_method --adjustdirection --thread ${task.cpus}  $fasta > ${fasta.baseName}.mafft.aln
-    sed -i '/^>/! s/[*|X]/-/g' ${fasta.baseName}.mafft.aln
-    trimal -in ${fasta.baseName}.mafft.aln -out ${fasta.baseName}.aln -gt 0 -fasta
-    """
-}
 
 
 /*
@@ -238,7 +214,7 @@ process diamondMakeDB {
     output:
     file 'references.dmnd' into diamond_database
 
-    publishDir params.reference_dir
+    publishDir params.reference_dir, mode: 'copy'
 
     script:
     """
@@ -346,6 +322,34 @@ process translateDNAtoAA {
     template 'translate_dna_to_aa.py'
 }
 
+
+process alignReferences {
+  input:
+  file fasta from references_unique_fastas_align
+
+  output:
+  file "${fasta.baseName}.aln" into ref_alignments
+
+  publishDir "${params.reference_dir}/${fasta.simpleName}", mode: 'copy'
+  tag "${fasta.simpleName}"
+  stageInMode 'copy'
+
+  script:
+  if (params.align_method == "prank")
+    """
+    prank -protein -d=$fasta -o=${fasta.baseName} -f=fasta
+    sed -i '/^>/! s/[*|X]/-/g' ${fasta.baseName}.best.fas
+    trimal -in ${fasta.baseName}.best.fas -out ${fasta.baseName}.aln -gt 0 -fasta
+    """
+  else if (params.align_method.startsWith("mafft"))
+    """
+    $params.align_method --adjustdirection --thread ${task.cpus}  $fasta > ${fasta.baseName}.mafft.aln
+    sed -i '/^>/! s/[*|X]/-/g' ${fasta.baseName}.mafft.aln
+    trimal -in ${fasta.baseName}.mafft.aln -out ${fasta.baseName}.aln -gt 0 -fasta
+    """
+}
+
+
 process buildTreefromReferences {
   input:
   file reference_alignment from ref_alignments
@@ -353,7 +357,7 @@ process buildTreefromReferences {
   output:
   set file("${reference_alignment.simpleName}.treefile"), file("${reference_alignment.simpleName}.modelfile"), file("$reference_alignment") into reference_trees
 
-  publishDir "${params.reference_dir}", mode: 'copy'
+  publishDir "${params.reference_dir}/${reference_alignment.simpleName}", mode: 'copy'
   tag "${reference_alignment.simpleName}"
 
   script:
@@ -374,6 +378,7 @@ process buildTreefromReferences {
     raxml -f e -s ${reference_alignment} -t ${reference_alignment.simpleName}.treefile -T ${task.cpus} -n file -m PROTGAMMALGF
     """
 }
+
 
 process alignQueriestoRefMSA {
   input:
@@ -429,13 +434,14 @@ process placeContigsOnRefTree {
   """
 }
 
+
 process assignContigs {
   input:
   file placed_contigs from placed_contigs
   each file(tax_map) from tax_map
 
   output:
-  file "${placed_contigs.simpleName}.csv" into profiles
+  set file("${placed_contigs.simpleName}.csv"), file("$tax_map") into profiles
   file "${placed_contigs.simpleName}.assign" into assignments
   file "${placed_contigs.simpleName}.svg" into colored_tree_svg
   file "${placed_contigs.simpleName}.newick" into placement_tree
@@ -461,22 +467,23 @@ process assignContigs {
 
 process magnetizeTrees {
     input:
-    file profile from profiles
+    set file(profile), file(tax_map) from profiles
     each lineage from lineage
     val rank from rank.first()
 
     output:
-    file 'decision.txt' into decisions
+    file "decision_${profile.baseName.tokenize('-')[1]}.txt" into decisions
     stdout x
 
     tag "${profile.baseName} - $lineage"
-    publishDir "${params.queries_dir}/${profile.simpleName.tokenize('-')[0]}", mode: 'copy'
+    publishDir "${params.queries_dir}/${profile.simpleName.tokenize('-')[0]}", mode: 'copy', overwrite: 'true'
 
     script:
     template 'magnetize_tree.py'
 }
 x.subscribe{print it}
 
+boolean fileSuccessfullyDeleted =  new File("${params.queries_dir}/tree_decisions.txt").delete()
 decisions_concat = decisions.collectFile(name: 'tree_decisions.txt', storeDir: params.queries_dir)
 
 // code from J. Viklund of SciLifeLab Uppsala
