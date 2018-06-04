@@ -27,15 +27,13 @@ def startup_message() {
     log.info "Output dir for references         : $params.reference_dir"
     log.info "Phylogenetic method               : $params.phylo_method"
     log.info "number of threads                 : $params.cpus"
-    log.info "Map of EggNOG from MEGAN          : $params.megan_eggnog_map"
     log.info "taxonomic level to be analysed    : $params.taxonomic_rank"
     log.info "Use a local fastq file            : $params.fastq"
     log.info "Use run IDs instead of projects   : $params.is_runs"
     log.info "Lineage(s) to look for            : $params.lineage"
     log.info ""
     log.info "Binaries location (use default if singularity image is used)"
-    log.info "location of gc-assembler          : $params.gc_assembler"
-    log.info "location of daa-meganizer         : $params.daa_meganizer"
+    log.info "location of MEGAN6                : $params.megan_dir"
     log.info "Python 3 binary used              : $params.python3"
     log.info ""
     log.info ""
@@ -55,10 +53,11 @@ rank = Channel.from(params.taxonomic_rank)
 
 eggNOGIDs = Channel.from(file(params.reference_classes).readLines())
 eggNOGIDs_local = Channel.from(file(params.reference_classes))
-Channel.from(file(params.megan_eggnog_map)).into { megan_eggnog_map; megan_eggnog_map_local }
 
-local_ref = optional_channel_from_path(params.local_ref)
+optional_channel_from_path(params.local_ref).into {local_ref_include; local_ref_map}
 fastq_files = optional_channel_from_path(params.fastq)
+
+Channel.from(file(params.megan_vmoptions)).into { megan_vmoptions_meganizer; megan_vmoptions_assembler }
 
 /*******************************************************************************
 ******************** Download and Prepare Section ******************************
@@ -117,33 +116,36 @@ process downloadFastQ {
 
 fastq_files_all = fastq_files.mix(fastq_files_SRA)
 
+
 process includeLocalRef  {
   input:
-  file "*" from local_ref.collect()
-  file ids from eggNOGIDs_local.first()
-  file megan_eggnog_map from megan_eggnog_map_local.first()
+  file "*" from local_ref_include.collect()
 
   output:
-  file "*.fasta" into local_ref_eggnog mode flatten
-  file "local_translation.txt" into local_ref_translation
+  file "eggnog.map" into extended_eggnog_map
+  file "data.jar" into data_jar
 
-  // publishDir params.reference_dir, mode: 'copy'
-  cache 'deep'
+  publishDir params.reference_dir, pattern: '*.jar'
 
   script:
   """
-  cp \$(readlink -f $ids) ${ids.simpleName}_local.txt
+  cp -L $params.megan_dir/jars/data.jar .
+  jar -xf data.jar
+  mv resources/files/eggnog.map .
+
   for f in *.fasta;
   do
-    ID=\$(comm -3 <(grep -v '^-' $megan_eggnog_map | cut -f2 | cut -d ' ' -f 1 | sort ) <(cat ${ids.simpleName}_local.txt | sort) | tr -d '\\t' | head -n 1)
-    cp -L \$f \$ID.\${f%%.*}.fasta
-    echo \$ID >> ${ids.simpleName}_local.txt
-    echo \${f%%.*}"\t"\$ID >> local_translation.txt
+    ID="\$((\$(tail -n 1 eggnog.map | cut -f1) + 1))"
+    printf "%i\\t%s\\n" "\$ID" "\${f%%.*}" >> eggnog.map
   done
+
+  cp eggnog.map resources/files/
+  jar -cvf data.jar resources/*
+  rm -rf resources
   """
 }
-local_ref_eggnog.into{local_ref_eggnog_copy; local_ref_eggnog_mix}
-local_ref_eggnog_copy.subscribe{it.copyTo("${params.reference_dir}/${it.baseName.tokenize('.')[1]}/${it.baseName}.fasta")}
+
+data_jar.into{data_jar_meganizer; data_jar_assembler}
 
 /*
   Download all raw sequence files as well as the untrimmed alignment
@@ -155,7 +157,6 @@ process downloadEggNOG {
 
     output:
     file "${id}.fasta" into eggNOGFastas
-    // file "${id}.aln" into eggNOGAlignments
 
     publishDir "${params.reference_dir}/$id", mode: 'copy'
     tag "$id"
@@ -165,7 +166,7 @@ process downloadEggNOG {
     """
 }
 
-references_fastas = eggNOGFastas.mix(local_ref_eggnog_mix)
+references_fastas = eggNOGFastas.mix(local_ref_map)
 
 /*
   create a mapping file of reference sequence ID to EggNOG ID that can be
@@ -173,7 +174,7 @@ references_fastas = eggNOGFastas.mix(local_ref_eggnog_mix)
 */
 process createMappingFiles {
     input:
-    file megan_eggnog_map from megan_eggnog_map.first()
+    file megan_eggnog_map from extended_eggnog_map
     file fasta from references_fastas
 
     output:
@@ -182,7 +183,7 @@ process createMappingFiles {
     file "*.class" into class_map
     file "*.unique.fasta" into references_unique_fastas
 
-    publishDir "${params.reference_dir}/${fasta.baseName.tokenize('.').size() > 1? fasta.baseName.tokenize('.')[1] : fasta.baseName.tokenize('.')[0]}", mode: 'copy'
+    publishDir "${params.reference_dir}/${fasta.simpleName}", mode: 'copy'
     tag "${fasta.baseName}"
 
     script:
@@ -258,6 +259,8 @@ process meganizeDAAFiles {
     input:
     file daa from daa_files
     file eggnog_map from eggnog_map_concat.first()
+    file "data.jar" from data_jar_meganizer
+    file "MEGAN.vmoptions" from megan_vmoptions_meganizer
 
     output:
     file daa into daa_files_meganized
@@ -268,7 +271,9 @@ process meganizeDAAFiles {
 
     script:
     """
-    ${params.daa_meganizer} --in ${daa} -s2eggnog ${eggnog_map}
+    vmOptions=\$(grep '^-' MEGAN.vmoptions | tr "\\n" " ")
+    java \$vmOptions -cp "$params.megan_dir/jars/MEGAN.jar:data.jar" \
+          megan.tools.DAAMeganizer --in ${daa} -s2eggnog ${eggnog_map}
     """
 }
 
@@ -281,6 +286,8 @@ process geneCentricAssembly {
     input:
     file daa from daa_files_meganized
     file class_map from class_map_concat.first()
+    file "data.jar" from data_jar_assembler
+    file "MEGAN.vmoptions" from megan_vmoptions_assembler
 
     output:
     file '*.fasta' into assembled_contigs mode flatten
@@ -290,12 +297,15 @@ process geneCentricAssembly {
 
     script:
     """
-    ${params.gc_assembler} -i ${daa} -fun EGGNOG -id ALL -mic 99 -vv --minAvCoverage 2 -t ${task.cpus}
+    vmOptions=\$(grep '^-' MEGAN.vmoptions | tr "\\n" " ")
+    java \$vmOptions -cp "$params.megan_dir/jars/MEGAN.jar:data.jar" \
+          megan.tools.GCAssembler -i ${daa} -fun EGGNOG -id ALL -mic 99 -vv --minAvCoverage 2 -t ${task.cpus}
+
     while read id name ; do
-      if [ -e ${daa.simpleName}-\$id.fasta ];
-      then
-        mv ${daa.simpleName}-\$id.fasta ${daa.simpleName}-\$name.fasta
-      fi
+    if [ -e ${daa.simpleName}-\$id.fasta ];
+    then
+    mv ${daa.simpleName}-\$id.fasta ${daa.simpleName}-\$name.fasta
+    fi
     done < $class_map
     """
 }

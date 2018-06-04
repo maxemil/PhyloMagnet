@@ -3,7 +3,6 @@ From: debian:stretch
 
 %files
 lib/*.py /usr/local/
-MEGAN.vmoptions /usr/local/
 
 %labels
 Maintainer	max-emil.schon@icm.uu.se
@@ -82,7 +81,6 @@ cd /usr/local/
 wget http://ab.inf.uni-tuebingen.de/data/software/megan6/download/MEGAN_Community_unix_6_11_1.sh
 chmod +x MEGAN_Community_unix_6_11_1.sh
 ./MEGAN_Community_unix_6_11_1.sh -q
-mv /usr/local/MEGAN.vmoptions /usr/local/megan/MEGAN.vmoptions
 
 ######## python ########
 pip3 install wheel
