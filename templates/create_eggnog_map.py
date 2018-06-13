@@ -57,14 +57,20 @@ def clean_rec_id(recid):
     return recid
 
 
-def remove_duplicate_seqs(fasta, taxon_clade_mod, tax_map):
-    ncbi = ncbi_taxonomy.NCBITaxa()
+def parse_fasta(fasta):
     seq_dict = defaultdict(list)
     seq_rec_dict = {}
     for rec in SeqIO.parse(fasta, 'fasta'):
         rec.id = clean_rec_id(rec.id)
         seq_dict[str(rec.seq)].append(rec.id)
         seq_rec_dict[rec.id] = rec
+    return seq_rec_dict, seq_dict
+
+
+def remove_duplicate_seqs(fasta, taxon_clade_mod, tax_map):
+    ncbi = ncbi_taxonomy.NCBITaxa()
+    seq_rec_dict, seq_dict = parse_fasta(fasta)
+    removed_ids = {}
     for k,v in seq_dict.items():
         if len(v) > 1:
             tax_strings = []
@@ -80,14 +86,15 @@ def remove_duplicate_seqs(fasta, taxon_clade_mod, tax_map):
                 tax_path = commonprefix(tax_strings)
                 taxon = tax_path[-1].replace(';', '')
                 id = ncbi.get_name_translator([taxon])[taxon][0]
-                seqrec.id = "{}.{}_{}".format(id, clean_rec_id(taxon), "_".join(merged_ids))
+                seqrec.id = "{}.{}".format(id, clean_rec_id(taxon))
+                removed_ids[seqrec.id] = merged_ids
                 seqrec.description = ""
                 taxon_clade_mod[seqrec.id] = "; ".join(tax_path)
                 seq_rec_dict[seqrec.id] = seqrec
                 tax_map[seqrec.id] = id
             except:
                 print("key error")
-    return taxon_clade_mod, seq_rec_dict, tax_map
+    return taxon_clade_mod, seq_rec_dict, tax_map, removed_ids
 
 
 def write_class_map(eggnog_id_mapping, basename):
@@ -113,22 +120,28 @@ def write_taxon_map(taxon_clade_mod, basename):
             tax_map.write("{}\\t{}\\n".format(k,v))
 
 
-def write_mapping_files(eggnog_id, base_file, local_eggnog_map, fasta):
-    basename_files = base_file.split('.')[1] if len(base_file.split('.')) > 1 else base_file
+def write_removed_seqs(removed_ids, basename):
+    with open("{}.removed.seqs".format(basename), 'w') as removed_seq_out:
+        for k,v in removed_ids.items():
+            removed_seq_out.write("{}\\t{}\\n".format(k, "; ".join(v)))
+
+
+def write_mapping_files(eggnog_id, local_eggnog_map, fasta):
     tax_map = read_tax_map(fasta)
     taxon_clade_mod = get_clade_dict(tax_map)
-    taxon_clade_mod, seq_rec_dict, tax_map = remove_duplicate_seqs(fasta, taxon_clade_mod, tax_map)
+    taxon_clade_mod, seq_rec_dict, tax_map, removed_ids = remove_duplicate_seqs(fasta, taxon_clade_mod, tax_map)
 
-    write_class_map(local_eggnog_map[eggnog_id], basename_files)
-    write_unique_seqs(seq_rec_dict, basename_files)
-    write_eggnog_map(local_eggnog_map[eggnog_id], basename_files, tax_map)
-    write_taxon_map(taxon_clade_mod, basename_files)
+    write_class_map(local_eggnog_map[eggnog_id], eggnog_id)
+    write_unique_seqs(seq_rec_dict, eggnog_id)
+    write_eggnog_map(local_eggnog_map[eggnog_id], eggnog_id, tax_map)
+    write_taxon_map(taxon_clade_mod, eggnog_id)
+    write_removed_seqs(removed_ids, eggnog_id)
 
 
-def main(eggnog_id, eggnog_map, base_file, fasta):
+def main(eggnog_id, eggnog_map, fasta):
     local_eggnog_map = parse_eggnog_map(eggnog_map)
-    write_mapping_files(eggnog_id, base_file, local_eggnog_map, fasta)
+    write_mapping_files(eggnog_id, local_eggnog_map, fasta)
 
 
 if __name__ == '__main__':
-    main("${fasta.simpleName}", "${megan_eggnog_map}", "${fasta.baseName}", "${fasta}")
+    main("${fasta.simpleName}", "${megan_eggnog_map}", "${fasta}")

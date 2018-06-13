@@ -27,7 +27,6 @@ def startup_message() {
     log.info "Output dir for references         : $params.reference_dir"
     log.info "Phylogenetic method               : $params.phylo_method"
     log.info "number of threads                 : $params.cpus"
-    log.info "taxonomic level to be analysed    : $params.taxonomic_rank"
     log.info "Use a local fastq file            : $params.fastq"
     log.info "Use run IDs instead of projects   : $params.is_runs"
     log.info "Lineage(s) to look for            : $params.lineage"
@@ -49,13 +48,13 @@ lineage_list = params.lineage.tokenize(',')
 lineage = Channel.from(lineage_list)
 // reads a list of Bioproject IDs, but testi
 
-rank = Channel.from(params.taxonomic_rank)
 
-eggNOGIDs = Channel.from(file(params.reference_classes).readLines())
-eggNOGIDs_local = Channel.from(file(params.reference_classes))
+eggNOGIDs = optional_channel_from_file(params.reference_classes)
+eggNOGIDs_local = optional_channel_from_path(params.reference_classes)
 
-optional_channel_from_path(params.local_ref).into {local_ref_include; local_ref_map}
+optional_channel_from_path(params.local_ref).into {local_ref_include_raw; local_ref_map}
 fastq_files = optional_channel_from_path(params.fastq)
+local_ref_include = local_ref_include_raw.ifEmpty("execute anyway")
 
 Channel.from(file(params.megan_vmoptions)).into { megan_vmoptions_meganizer; megan_vmoptions_assembler }
 
@@ -479,7 +478,6 @@ process magnetizeTrees {
     input:
     set file(profile), file(tax_map) from profiles
     each lineage from lineage
-    val rank from rank.first()
 
     output:
     file "decision_${profile.baseName.tokenize('-')[1]}.txt" into decisions
