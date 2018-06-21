@@ -52,11 +52,14 @@ lineage = Channel.from(lineage_list)
 eggNOGIDs = optional_channel_from_file(params.reference_classes)
 eggNOGIDs_local = optional_channel_from_path(params.reference_classes)
 
-optional_channel_from_path(params.local_ref).into {local_ref_include_raw; local_ref_map}
+optional_channel_from_path(params.local_ref).into {local_ref_include_raw; local_ref_map; local_ref_save}
 fastq_files = optional_channel_from_path(params.fastq)
+local_ref_save.subscribe{ it.copyTo("${params.reference_dir}/${it.simpleName}/${it.simpleName}.fasta") }
 local_ref_include = local_ref_include_raw.ifEmpty("execute anyway")
 
 Channel.from(file(params.megan_vmoptions)).into { megan_vmoptions_meganizer; megan_vmoptions_assembler }
+
+ref_packages = optional_channel_from_path(params.reference_packages)
 
 /*******************************************************************************
 ******************** Download and Prepare Section ******************************
@@ -115,10 +118,36 @@ process downloadFastQ {
 
 fastq_files_all = fastq_files.mix(fastq_files_SRA)
 
-
-process includeLocalRef  {
+process unpackRefPackage {
   input:
-  file "*" from local_ref_include.collect()
+  file rpkg from ref_packages
+
+  output:
+  file "${rpkg.simpleName}.fasta" into local_ref_rpkg
+  file "${rpkg.simpleName}.unique.fasta" into local_ref_unique_rpkg
+  set file("${rpkg.simpleName}.treefile"), file("${rpkg.simpleName}.modelfile"), file("${rpkg.simpleName}.unique.aln") into reference_trees_rpkg
+  file "${rpkg.simpleName}.taxid.map" into tax_map_rpkg
+  file "${rpkg.simpleName}.eggnog.map" into eggnog_map_rpkg
+  file "${rpkg.simpleName}.class" into class_rpkg
+
+  publishDir "${params.reference_dir}/${rpkg.simpleName}", mode: 'copy'
+  tag "${rpkg.simpleName}"
+
+  script:
+  """
+  tar xzfv $rpkg
+  """
+}
+
+local_ref_include_w_rpkg = local_ref_include.mix(local_ref_rpkg)
+class_rpkg.into{class_rpkg_map_raw; class_rpkg_concat}
+
+class_rpkg_map = class_rpkg_map_raw.ifEmpty("execute anyway")
+
+process includeLocalRef {
+  input:
+  file "*" from local_ref_include_w_rpkg.collect()
+  file "*" from class_rpkg_map.collect()
 
   output:
   file "eggnog.map" into extended_eggnog_map
@@ -132,10 +161,24 @@ process includeLocalRef  {
   jar -xf data.jar
   mv resources/files/eggnog.map .
 
+  if [ ! -n "\$(echo *.class)" ];
+  then
+    for c in *.class;
+    do
+      if [ ! \$(grep "\${c%%.*}\\s" eggnog.map) ];
+      then
+        cat \$c >> eggnog.map
+      fi
+    done
+  fi
+
   for f in *.fasta;
   do
-    ID="\$((\$(tail -n 1 eggnog.map | cut -f1) + 1))"
-    printf "%i\\t%s\\n" "\$ID" "\${f%%.*}" >> eggnog.map
+    if [ ! \$(grep "\${f%%.*}\\s" eggnog.map) ];
+    then
+      ID="\$((\$(tail -n 1 eggnog.map | cut -f1) + 1))"
+      printf "%i\\t%s\\n" "\$ID" "\${f%%.*}" >> eggnog.map
+    fi
   done
 
   cp eggnog.map resources/files/
@@ -189,9 +232,11 @@ process createMappingFiles {
     template 'create_eggnog_map.py'
 }
 
+tax_map_combined = tax_map.mix(tax_map_rpkg)
 
-references_unique_fastas.into{references_unique_fastas_align; references_unique_fastas_concat}
+references_unique_fastas.into{references_unique_fastas_align; references_unique_fastas_concat_raw}
 
+references_unique_fastas_concat = references_unique_fastas_concat_raw.mix(local_ref_unique_rpkg)
 
 /*
   Concatenate all fastA into one single references.fasta for diamond alignment
@@ -201,8 +246,8 @@ concatenated_references = references_unique_fastas_concat.collectFile(name: 'ref
 /*
   concatenate single mapping files and keep track of long/short IDs for EggNOG
 */
-eggnog_map_concat = eggnog_map.collectFile(name: 'eggnog.syn', storeDir: params.reference_dir)
-class_map_concat = class_map.collectFile(name: 'class.map', storeDir: params.reference_dir)
+eggnog_map_concat = eggnog_map.mix(eggnog_map_rpkg).collectFile(name: 'eggnog.syn', storeDir: params.reference_dir)
+class_map_concat = class_map.mix(class_rpkg_concat).collectFile(name: 'class.map', storeDir: params.reference_dir)
 
 /*
   prepare the diamond database from the concatenated fastA file
@@ -347,13 +392,13 @@ process alignReferences {
   if (params.align_method == "prank")
     """
     prank -protein -d=$fasta -o=${fasta.baseName} -f=fasta
-    sed -i '/^>/! s/[*|X]/-/g' ${fasta.baseName}.best.fas
+    sed -i '/^>/! s/[U|*|X]/-/g' ${fasta.baseName}.best.fas
     trimal -in ${fasta.baseName}.best.fas -out ${fasta.baseName}.aln -gt 0 -fasta
     """
   else if (params.align_method.startsWith("mafft"))
     """
-    $params.align_method --adjustdirection --thread ${task.cpus}  $fasta > ${fasta.baseName}.mafft.aln
-    sed -i '/^>/! s/[*|X]/-/g' ${fasta.baseName}.mafft.aln
+    $params.align_method --adjustdirection --anysymbol --thread ${task.cpus}  $fasta > ${fasta.baseName}.mafft.aln
+    sed -i '/^>/! s/[U|*|X]/-/g' ${fasta.baseName}.mafft.aln
     trimal -in ${fasta.baseName}.mafft.aln -out ${fasta.baseName}.aln -gt 0 -fasta
     """
 }
@@ -388,10 +433,11 @@ process buildTreefromReferences {
     """
 }
 
+reference_trees_combined = reference_trees.mix(reference_trees_rpkg)
 
 process alignQueriestoRefMSA {
   input:
-  set file(reftree), file(modelinfo), file(refalignment) from reference_trees
+  set file(reftree), file(modelinfo), file(refalignment) from reference_trees_combined
   each contigs from translated_contigs
 
   output:
@@ -447,7 +493,7 @@ process placeContigsOnRefTree {
 process assignContigs {
   input:
   file placed_contigs from placed_contigs
-  each file(tax_map) from tax_map
+  each file(tax_map) from tax_map_combined
 
   output:
   set file("${placed_contigs.simpleName}.csv"), file("$tax_map") into profiles
@@ -491,7 +537,7 @@ process magnetizeTrees {
 }
 x.subscribe{print it}
 
-boolean fileSuccessfullyDeleted =  new File("${params.queries_dir}/tree_decisions.txt").delete()
+boolean fileSuccessfullyDeleted = new File("${params.queries_dir}/tree_decisions.txt").delete()
 decisions_concat = decisions.collectFile(name: 'tree_decisions.txt', storeDir: params.queries_dir)
 
 // code from J. Viklund of SciLifeLab Uppsala
