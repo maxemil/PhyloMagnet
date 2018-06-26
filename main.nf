@@ -61,6 +61,12 @@ Channel.from(file(params.megan_vmoptions)).into { megan_vmoptions_meganizer; meg
 
 ref_packages = optional_channel_from_path(params.reference_packages)
 
+warning_no_queries = "WARNING: no query sequences or IDs given, but will continue to prepare references"
+if (!params.fastq && !params.project_list) {
+  print(warning_no_queries)
+}
+
+
 /*******************************************************************************
 ******************** Download and Prepare Section ******************************
 *******************************************************************************/
