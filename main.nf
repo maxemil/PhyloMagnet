@@ -536,7 +536,10 @@ process magnetizeTrees {
     publishDir "${params.queries_dir}/${profile.simpleName.tokenize('-')[0]}", mode: 'copy', overwrite: 'true'
 
     script:
-    template 'magnetize_tree.py'
+    if ("$lineage".matches("superkingdom|phylum|class|order|family|genus|species"))
+        template 'magnetize_tree_profile.py'
+    else
+        template 'magnetize_tree.py'
 }
 x.subscribe{print it}
 
