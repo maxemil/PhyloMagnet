@@ -12,5 +12,3 @@ with open('runs.txt', 'w') as out:
     for line in desc.split('\\n'):
         if all(re.search(pat, line) for pat in regex_strings):
             print(line.split(",")[0], file=out)
-            #open(line.split(",")[0], 'w').close()
-            #print("%s_%s" % ("${projectID}", line.split(",")[0]))

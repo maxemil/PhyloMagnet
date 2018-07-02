@@ -30,6 +30,7 @@ def startup_message() {
     log.info "Use a local fastq file            : $params.fastq"
     log.info "Use run IDs instead of projects   : $params.is_runs"
     log.info "Lineage(s) to look for            : $params.lineage"
+    log.info "Sequence DB to download from      : $params.database"
     log.info ""
     log.info "Binaries location (use default if singularity image is used)"
     log.info "location of MEGAN6                : $params.megan_dir"
@@ -81,7 +82,7 @@ process filterRuns {
     val projectID from ids
 
     output:
-    set file('runs.txt'), val(projectID) into project_runs
+    file 'runs.txt' into project_runs
 
     errorStrategy 'ignore'
     tag "$projectID"
@@ -96,6 +97,8 @@ process filterRuns {
     }
 }
 
+all_runs = project_runs.flatMap {it -> it.readLines() }
+
 
 /*
   for all valid runs specified in 'runs.txt', download fastQ files (in parallel).
@@ -104,22 +107,16 @@ process filterRuns {
 */
 process downloadFastQ {
     input:
-    set file('runs.txt'), val(x) from project_runs
+    val run_id from all_runs
 
     output:
     file "*.fastq.gz" into fastq_files_SRA mode flatten
 
     publishDir params.queries_dir
-    tag "$x"
+    tag "$run_id"
 
     script:
-    """
-    #! /usr/bin/env bash
-    while read run; do
-      fastq-dump --gzip --readids --split-spot --skip-technical --clip \$run &
-    done <  runs.txt
-    wait
-    """
+    template 'download_fastq.py'
 }
 
 fastq_files_all = fastq_files.mix(fastq_files_SRA)
