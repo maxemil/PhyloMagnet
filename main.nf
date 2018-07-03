@@ -307,7 +307,7 @@ process meganizeDAAFiles {
     file daa from daa_files
     file eggnog_map from eggnog_map_concat.first()
     file "data.jar" from data_jar_meganizer
-    file "MEGAN.vmoptions" from megan_vmoptions_meganizer
+    file "MEGAN.vmoptions" from megan_vmoptions_meganizer.first()
 
     output:
     file daa into daa_files_meganized
@@ -334,7 +334,7 @@ process geneCentricAssembly {
     file daa from daa_files_meganized
     file class_map from class_map_concat.first()
     file "data.jar" from data_jar_assembler
-    file "MEGAN.vmoptions" from megan_vmoptions_assembler
+    file "MEGAN.vmoptions" from megan_vmoptions_assembler.first()
 
     output:
     file '*.fasta' into assembled_contigs mode flatten
