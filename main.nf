@@ -455,7 +455,7 @@ process alignQueriestoRefMSA {
   script:
   """
   trimal -in $refalignment -out ${refalignment.simpleName}.phy -phylip
-  papara -t $reftree -s ${refalignment.simpleName}.phy -q $contigs -a -n ${contigs.simpleName} -r -j ${task.cpus}
+  papara -t $reftree -s ${refalignment.simpleName}.phy -q $contigs -a -n ${contigs.simpleName} -r
   trimal -in papara_alignment.${contigs.simpleName} -out ${contigs.simpleName}.ref.aln -fasta
   """
 }

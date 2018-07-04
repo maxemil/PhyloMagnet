@@ -5,9 +5,8 @@ function run_simple()
             --reference_classes test/EggNOG.txt \
             --is_runs true \
             --fastq test/rpoB.fastq.gz \
-            --local_ref test/rpoB_translation.fasta \
-            --lineage "Enterobacterales" \
-            --taxonomy_level_trees "order" \
+            --reference_packages "test/rpkgs/*" \
+            --lineage "order" \
             --megan_eggnog_map eggnog.map \
             --cpus 2 \
             --is_runs true \
