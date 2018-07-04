@@ -16,21 +16,40 @@ dependencies:
 def startup_message() {
     revision = grab_git_revision() ?: 'no idea... didnt find the git repo'
     log.info "=========================================================="
-    log.info "                       PhyloMagnet"
+    log.info "______ _           _      ___  ___                       _   "
+    log.info "| ___ \\ |         | |     |  \\/  |                      | |  "
+    log.info "| |_/ / |__  _   _| | ___ | .  . | __ _  __ _ _ __   ___| |_ "
+    log.info "|  __/| '_ \\| | | | |/ _ \\| |\\/| |/ _` |/ _` | '_ \\ / _ \\ __|"
+    log.info "| |   | | | | |_| | | (_) | |  | | (_| | (_| | | | |  __/ |_ "
+    log.info "\\_|   |_| |_|\\__, |_|\\___/\\_|  |_/\\__,_|\\__, |_| |_|\\___|\\__|"
+    log.info "              __/ |                      __/ |               "
+    log.info "             |___/                      |___/                 "
+    log.info ""
     log.info "Author                            : Max Emil Schön"
     log.info "email                             : max-emil.schon@icm.uu.se"
     log.info "version                           : $revision"
-    log.info "=========================================================="
-    log.info "List of EggNOG classes            : $params.reference_classes"
+    log.info ""
+    log.info "======================Query options======================="
+    log.info "Use a local fastq file            : $params.fastq"
     log.info "List of BioProject Ids            : $params.project_list"
+    log.info "Use run IDs instead of projects   : $params.is_runs"
+    log.info "Sequence DB to download from      : $params.database"
+    log.info ""
+    log.info "====================References options===================="
+    log.info "List of EggNOG classes            : $params.reference_classes"
+    log.info "Precomputed reference packages    : $params.reference_packages"
+    log.info "Local reference files             : $params.local_ref"
+    log.info ""
+    log.info "======================Output options======================"
     log.info "Output dir for queries            : $params.queries_dir"
     log.info "Output dir for references         : $params.reference_dir"
+    log.info ""
+    log.info "=======================Run options========================"
     log.info "Phylogenetic method               : $params.phylo_method"
-    log.info "number of threads                 : $params.cpus"
-    log.info "Use a local fastq file            : $params.fastq"
-    log.info "Use run IDs instead of projects   : $params.is_runs"
+    log.info "Alignment method                  : $params.align_method"
+    log.info "Number of threads                 : $params.cpus"
     log.info "Lineage(s) to look for            : $params.lineage"
-    log.info "Sequence DB to download from      : $params.database"
+    log.info "MEGAN VM options file             : $params.megan_vmoptions"
     log.info ""
     log.info "Binaries location (use default if singularity image is used)"
     log.info "location of MEGAN6                : $params.megan_dir"
@@ -447,7 +466,7 @@ process alignQueriestoRefMSA {
   set file("$reftree"), file("$modelinfo"), file("$refalignment"), file("${contigs.simpleName}.ref.aln") into aligned_queries
 
   tag "${contigs.simpleName} - ${refalignment.simpleName}"
-  publishDir "${params.queries_dir}/${contigs.simpleName.tokenize('-')[0]}", mode: 'copy'
+  publishDir "${params.queries_dir}/${contigs.simpleName.tokenize('-')[0]}", mode: 'copy', pattern: "${contigs.simpleName}*"
 
   when:
   "${refalignment.simpleName}" == "${contigs.simpleName.tokenize('-')[1]}"
@@ -469,6 +488,8 @@ process splitAlignmentsRefQuery {
   set file("$reftree"), file("$modelinfo"), file("$refalignment"), file("${queryalignment.simpleName}.queries.aln") into aligned_queries_split
 
   tag "${queryalignment.simpleName} - ${refalignment.simpleName}"
+  publishDir "${params.queries_dir}/${queryalignment.simpleName.tokenize('-')[0]}", mode: 'copy', pattern: "${queryalignment.simpleName}*"
+
 
   script:
   template 'split_alignments_ref_query.py'
@@ -504,11 +525,11 @@ process assignContigs {
   file "${placed_contigs.simpleName}.svg" into colored_tree_svg
   file "${placed_contigs.simpleName}.newick" into placement_tree
 
-  publishDir "${params.queries_dir}/${placed_contigs.baseName.tokenize('-')[0]}", mode: 'copy'
+  publishDir "${params.queries_dir}/${placed_contigs.simpleName.tokenize('-')[0]}", mode: 'copy', pattern: "${placed_contigs.simpleName}*"
   tag "${placed_contigs.simpleName}"
 
   when:
-  "${tax_map.simpleName}" == "${placed_contigs.baseName.tokenize('-')[1]}"
+  "${tax_map.simpleName}" == "${placed_contigs.simpleName.tokenize('-')[1]}"
 
 
   script:

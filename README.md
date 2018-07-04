@@ -1,6 +1,6 @@
 [![Docs Status](https://readthedocs.org/projects/phylomagnet/badge/?version=latest)](http://phylomagnet.readthedocs.io/en/latest/)
 [![Build Status](https://travis-ci.org/maxemil/PhyloMagnet.svg?branch=master)](https://travis-ci.org/maxemil/PhyloMagnet)
-[![Hosted](https://www.singularity-hub.org/static/img/hosted-singularity--hub-%23e32929.svg)](https://www.singularity-hub.org/collections/482)
+[![Hosted](https://img.shields.io/badge/hosted-singularity--hub-blue.svg)](https://www.singularity-hub.org/collections/978)
 
 # PhyloMagnet
 ## Pipeline for screening metagenomes, looking for arbitrary lineages, using gene-centric assembly methods and phylogenetics
@@ -13,18 +13,21 @@ Given a list of Bioproject IDs, PhyloMagnet downloads WGS Metagenome Illumina ru
 # download the image with all tools installed
 singularity pull --name PhyloMagnet.simg shub://maxemil/PhyloMagnet:latest
 
+# get versions of tools used in the pipeline:
+./PhyloMagnet.simg
+
 # execute the pipeline with nextflow
 nextflow run main.nf --reference_classes eggnog.txt \
                      --project_list bioprojects.txt \
-                     --phylo_method fasttree \
+                     --database 'ena'
+                     --phylo_method 'fasttree' \
+                     --align_method 'mafft-einsi'
                      --queries_dir queries_output \
                      --reference_dir ref_output \
-                     --megan_eggnog_map eggnog_map.txt \
-                     --lineage Rickettsiales \
-                     --taxonomy_level_trees order \
+                     --megan_vmoptions 'MEGAN.vmoptions' \
+                     --lineage 'Rickettsiales','Pelagibacterales' \
                      --cpus 20
 ```
-
 ## Author
 
 * [Max Emil Schön](https://github.com/maxemil), PhD student @ [Ettemalab](https://www.ettemalab.org), Uppsala University

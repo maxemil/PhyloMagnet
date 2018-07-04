@@ -2,7 +2,6 @@ function run_simple()
 {
   nextflow run main.nf \
             -with-singularity PhyloMagnet.simg \
-            --reference_classes test/EggNOG.txt \
             --is_runs true \
             --fastq test/rpoB.fastq.gz \
             --reference_packages "test/rpkgs/*" \

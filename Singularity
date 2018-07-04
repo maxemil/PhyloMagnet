@@ -36,7 +36,7 @@ VERSION_RAXML=$(raxml -version | grep 'RAxML version' | cut -d' ' -f 5)
 export VERSION_RAXML
 VERSION_GAPPA='v0.0.0'
 export VERSION_GAPPA
-VERSION_ETE3=$(ete3 version | cut -d' ' -f1)
+VERSION_ETE3=$(python3 -c 'import ete3; print(ete3.__version__)')
 export VERSION_ETE3
 VERSION_BIOPYTHON=$(python3 -c 'import Bio; print(Bio.__version__)')
 export VERSION_BIOPYTHON
@@ -74,7 +74,6 @@ apt-get install --no-install-recommends -qy \
                   autoconf \
                   build-essential \
                   ca-certificates
-                  # cpanminus \
 
 ######## MEGAN6 ########
 cd /usr/local/
@@ -85,6 +84,7 @@ chmod +x MEGAN_Community_unix_6_11_1.sh
 ######## python ########
 pip3 install wheel
 pip3 install biopython ete3 scipy pandas seaborn xvfbwrapper pyqt5 requests
+rm /usr/local/bin/ete3
 mkdir -p /usr/local/custom_python3_lib/
 mv /usr/local/*.py /usr/local/custom_python3_lib/
 
@@ -179,7 +179,7 @@ raxml -h
 papara -h
 gappa --help
 prank -version
-ete3 version
+python3 -c "import ete3"
 
 %runscript
 echo "MEGAN6: "$VERSION_MEGAN
