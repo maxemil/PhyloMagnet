@@ -31,14 +31,17 @@ def run(profile, lineages, samplename, genename):
     df['taxopath'] = df['taxopath'].astype(str)
     with open('decision_%s.txt' % genename, 'w') as out:
         for lineage in lineages:
-            lineage_results = df[df['taxopath'].apply(lambda x: lineage in x and not '{};'.format(lineage) in x)]
-            if lineage_results['aLWR'].item() >= 1:
-                print("{} present in sample {} (tree {})".format(lineage, samplename, genename))
-                print("{}\\t{}\\t{}\\tTrue".format(samplename, genename, lineage), file=out)
-            else:
+            try:
+                lineage_results = df[df['taxopath'].apply(lambda x: lineage in x and not '{};'.format(lineage) in x)]
+                if lineage_results['aLWR'].item() >= 1:
+                    print("{} present in sample {} (tree {})".format(lineage, samplename, genename))
+                    print("{}\\t{}\\t{}\\tTrue".format(samplename, genename, lineage), file=out)
+                else:
+                    print("{} NOT present in sample {} (tree {})".format(lineage, samplename, genename))
+                    print("{}\\t{}\\t{}\\tFalse".format(samplename, genename, lineage), file=out)
+            except ValueError:
                 print("{} NOT present in sample {} (tree {})".format(lineage, samplename, genename))
                 print("{}\\t{}\\t{}\\tFalse".format(samplename, genename, lineage), file=out)
-
 
 lineages = get_lineages("$tax_map", "$lineage")
 run("$profile", lineages, "${profile.baseName.tokenize('-')[0]}", "${profile.baseName.tokenize('-')[1]}")
