@@ -370,7 +370,7 @@ process translateDNAtoAA {
     file contig from assembled_contigs
 
     output:
-    file '*.faa' optional true into translated_contigs
+    file "${contig.simpleName}.faa" optional true into translated_contigs
 
     tag "${contig.simpleName}"
     publishDir "${params.queries_dir}/${contig.simpleName.tokenize('-')[0]}", mode: 'copy'
@@ -455,7 +455,7 @@ process alignQueriestoRefMSA {
   script:
   """
   trimal -in $refalignment -out ${refalignment.simpleName}.phy -phylip
-  papara -t $reftree -s ${refalignment.simpleName}.phy -q $contigs -a -n ${contigs.simpleName} -r
+  papara -t $reftree -s ${refalignment.simpleName}.phy -q $contigs -a -n ${contigs.simpleName} -r -j ${task.cpus}
   trimal -in papara_alignment.${contigs.simpleName} -out ${contigs.simpleName}.ref.aln -fasta
   """
 }
@@ -487,7 +487,7 @@ process placeContigsOnRefTree {
 
   script:
   """
-  epa-ng --ref-msa $refalignment --tree $reftree --query $queryalignment --model $modelinfo --no-heur
+  epa-ng --ref-msa $refalignment --tree $reftree --query $queryalignment --model $modelinfo --no-heur --threads ${task.cpus}
   mv epa_result.jplace ${queryalignment.simpleName}.jplace
   """
 }
@@ -513,12 +513,12 @@ process assignContigs {
 
   script:
   """
-  gappa analyze assign --jplace-path $placed_contigs --taxon-file $tax_map
+  gappa analyze assign --jplace-path $placed_contigs --taxon-file $tax_map --threads ${task.cpus}
   mv profile.csv ${placed_contigs.simpleName}.csv
   mv per_pquery_assign ${placed_contigs.simpleName}.assign
-  gappa analyze visualize-color --jplace-path $placed_contigs --write-svg-tree
+  gappa analyze visualize-color --jplace-path $placed_contigs --write-svg-tree --threads ${task.cpus}
   mv tree.svg ${placed_contigs.simpleName}.svg
-  gappa analyze graft --name-prefix 'Q_' --jplace-path $placed_contigs
+  gappa analyze graft --name-prefix 'Q_' --jplace-path $placed_contigs --threads ${task.cpus}
   """
 }
 
