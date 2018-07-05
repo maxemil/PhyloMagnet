@@ -567,6 +567,20 @@ x.subscribe{print it}
 boolean fileSuccessfullyDeleted = new File("${params.queries_dir}/tree_decisions.txt").delete()
 decisions_concat = decisions.collectFile(name: 'tree_decisions.txt', storeDir: params.queries_dir)
 
+process visualizeDecisions {
+    input:
+    file decisions_concat
+
+    output:
+    file "*.pdf" into decisions_visualizations
+
+    publishDir "${params.queries_dir}"
+
+    script:
+    template 'visualize_decisions.py'
+}
+
+
 // code from J. Viklund of SciLifeLab Uppsala
 def grab_git_revision() {
     if ( workflow.commitId ) { // it's run directly from github
