@@ -83,7 +83,7 @@ ref_packages = optional_channel_from_path(params.reference_packages)
 
 warning_no_queries = "WARNING: no query sequences or IDs given, but will continue to prepare references"
 if (!params.fastq && !params.project_list) {
-  print(warning_no_queries)
+  println(warning_no_queries)
 }
 
 
@@ -405,6 +405,7 @@ process alignReferences {
 
   output:
   file "${fasta.baseName}.aln" into ref_alignments
+  file "${fasta.baseName}.alignment.log" into alignment_logs
 
   publishDir "${params.reference_dir}/${fasta.simpleName}", mode: 'copy'
   tag "${fasta.simpleName}"
@@ -416,12 +417,14 @@ process alignReferences {
     prank -protein -d=$fasta -o=${fasta.baseName} -f=fasta
     sed -i '/^>/! s/[U|*|X]/-/g' ${fasta.baseName}.best.fas
     trimal -in ${fasta.baseName}.best.fas -out ${fasta.baseName}.aln -gt 0 -fasta
+    cp .command.out ${fasta.baseName}.alignment.log
     """
   else if (params.align_method.startsWith("mafft"))
     """
     $params.align_method --adjustdirection --anysymbol --thread ${task.cpus}  $fasta > ${fasta.baseName}.mafft.aln
     sed -i '/^>/! s/[U|*|X]/-/g' ${fasta.baseName}.mafft.aln
     trimal -in ${fasta.baseName}.mafft.aln -out ${fasta.baseName}.aln -gt 0 -fasta
+    sed "s/\\r/\\n/g" .command.log > ${fasta.baseName}.alignment.log
     """
 }
 
@@ -432,6 +435,7 @@ process buildTreefromReferences {
 
   output:
   set file("${reference_alignment.simpleName}.treefile"), file("${reference_alignment.simpleName}.modelfile"), file("$reference_alignment") into reference_trees
+  file "${reference_alignment.simpleName}.tree.log" into tree_logs
 
   publishDir "${params.reference_dir}/${reference_alignment.simpleName}", mode: 'copy'
   tag "${reference_alignment.simpleName}"
@@ -442,16 +446,18 @@ process buildTreefromReferences {
     ${params.phylo_method} -s ${reference_alignment} -m LG+G+F -nt AUTO -ntmax ${task.cpus} -pre ${reference_alignment.simpleName}
     raxml -f e -s ${reference_alignment} -t ${reference_alignment.simpleName}.treefile -T ${task.cpus} -n file -m PROTGAMMALGF
     mv RAxML_info.file ${reference_alignment.simpleName}.modelfile
+    mv ${reference_alignment.simpleName}.log ${reference_alignment.simpleName}.tree.log
     """
   else if (params.phylo_method == "fasttree")
     """
-    FastTree -log ${reference_alignment.simpleName}.log -lg ${reference_alignment} > ${reference_alignment.simpleName}.treefile
+    FastTree -log ${reference_alignment.simpleName}.tree.log -lg ${reference_alignment} > ${reference_alignment.simpleName}.treefile
     raxml -f e -s ${reference_alignment} -t ${reference_alignment.simpleName}.treefile -T ${task.cpus} -n file -m PROTGAMMALGF
     mv RAxML_info.file ${reference_alignment.simpleName}.modelfile
     """
   else if (params.phylo_method == "raxml")
     """
     raxml -f e -s ${reference_alignment} -t ${reference_alignment.simpleName}.treefile -T ${task.cpus} -n file -m PROTGAMMALGF
+    mv RAxML_log.file ${reference_alignment.simpleName}.tree.log
     """
 }
 
@@ -574,7 +580,7 @@ process visualizeDecisions {
     output:
     file "*.pdf" into decisions_visualizations
 
-    publishDir "${params.queries_dir}"
+    publishDir "${params.queries_dir}", mode: 'copy', overwrite: 'true'
 
     script:
     template 'visualize_decisions.py'
