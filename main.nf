@@ -13,52 +13,21 @@ dependencies:
   trimal
   FastTree or iqtree-omp
 */
-def startup_message() {
-    revision = grab_git_revision() ?: 'no idea... didnt find the git repo'
-    log.info "=========================================================="
-    log.info "______ _           _      ___  ___                       _   "
-    log.info "| ___ \\ |         | |     |  \\/  |                      | |  "
-    log.info "| |_/ / |__  _   _| | ___ | .  . | __ _  __ _ _ __   ___| |_ "
-    log.info "|  __/| '_ \\| | | | |/ _ \\| |\\/| |/ _` |/ _` | '_ \\ / _ \\ __|"
-    log.info "| |   | | | | |_| | | (_) | |  | | (_| | (_| | | | |  __/ |_ "
-    log.info "\\_|   |_| |_|\\__, |_|\\___/\\_|  |_/\\__,_|\\__, |_| |_|\\___|\\__|"
-    log.info "              __/ |                      __/ |               "
-    log.info "             |___/                      |___/                 "
-    log.info ""
-    log.info "Author                            : Max Emil Schön"
-    log.info "email                             : max-emil.schon@icm.uu.se"
-    log.info "version                           : $revision"
-    log.info ""
-    log.info "======================Query options======================="
-    log.info "Use a local fastq file            : $params.fastq"
-    log.info "List of BioProject Ids            : $params.project_list"
-    log.info "Use run IDs instead of projects   : $params.is_runs"
-    log.info "Sequence DB to download from      : $params.database"
-    log.info ""
-    log.info "====================References options===================="
-    log.info "List of EggNOG classes            : $params.reference_classes"
-    log.info "Precomputed reference packages    : $params.reference_packages"
-    log.info "Local reference files             : $params.local_ref"
-    log.info ""
-    log.info "======================Output options======================"
-    log.info "Output dir for queries            : $params.queries_dir"
-    log.info "Output dir for references         : $params.reference_dir"
-    log.info ""
-    log.info "=======================Run options========================"
-    log.info "Phylogenetic method               : $params.phylo_method"
-    log.info "Alignment method                  : $params.align_method"
-    log.info "Number of threads                 : $params.cpus"
-    log.info "Lineage(s) to look for            : $params.lineage"
-    log.info "MEGAN VM options file             : $params.megan_vmoptions"
-    log.info ""
-    log.info "Binaries location (use default if singularity image is used)"
-    log.info "location of MEGAN6                : $params.megan_dir"
-    log.info "Python 3 binary used              : $params.python3"
-    log.info ""
-    log.info ""
+
+versionLogo()
+
+if (params.help || params.h ){
+  helpMessage()
+  exit 0
+}else if ( !(params.local_ref || params.reference_classes || params.reference_packages) ) {
+  log.info "ERROR: no reference sequences given, will not continue"
+  helpMessage()
+  exit 0
+}else if (!params.fastq && !params.project_list) {
+  log.info "WARNING: no query sequences or IDs given, but will continue to prepare references"
 }
 
-startup_message()
+startupMessage()
 
 // reads a list of Bioproject IDs, but testing only on one single ID
 
@@ -81,10 +50,7 @@ Channel.from(file(params.megan_vmoptions)).into { megan_vmoptions_meganizer; meg
 
 ref_packages = optional_channel_from_path(params.reference_packages)
 
-warning_no_queries = "WARNING: no query sequences or IDs given, but will continue to prepare references"
-if (!params.fastq && !params.project_list) {
-  println(warning_no_queries)
-}
+
 
 
 /*******************************************************************************
@@ -630,4 +596,110 @@ def optional_channel_from_file(argument) {
   }else{
     return Channel.empty()
   }
+}
+
+def versionLogo() {
+  revision = grab_git_revision() ?: 'no idea... didnt find the git repo'
+  log.info "=========================================================="
+  log.info "______ _           _      ___  ___                       _   "
+  log.info "| ___ \\ |         | |     |  \\/  |                      | |  "
+  log.info "| |_/ / |__  _   _| | ___ | .  . | __ _  __ _ _ __   ___| |_ "
+  log.info "|  __/| '_ \\| | | | |/ _ \\| |\\/| |/ _` |/ _` | '_ \\ / _ \\ __|"
+  log.info "| |   | | | | |_| | | (_) | |  | | (_| | (_| | | | |  __/ |_ "
+  log.info "\\_|   |_| |_|\\__, |_|\\___/\\_|  |_/\\__,_|\\__, |_| |_|\\___|\\__|"
+  log.info "              __/ |                      __/ |               "
+  log.info "             |___/                      |___/                 "
+  log.info ""
+  log.info "Author                            : Max Emil Schön"
+  log.info "email                             : max-emil.schon@icm.uu.se"
+  log.info "version                           : $revision"
+  log.info ""
+}
+
+def startupMessage() {
+  log.info "====================== Query options ======================="
+  log.info "Use a local fastq file            : $params.fastq"
+  log.info "List of BioProject Ids            : $params.project_list"
+  log.info "Use run IDs instead of projects   : $params.is_runs"
+  log.info "Sequence DB to download from      : $params.database"
+  log.info ""
+  log.info "==================== References options ===================="
+  log.info "List of EggNOG classes            : $params.reference_classes"
+  log.info "Precomputed reference packages    : $params.reference_packages"
+  log.info "Local reference files             : $params.local_ref"
+  log.info ""
+  log.info "====================== Output options ======================"
+  log.info "Output dir for queries            : $params.queries_dir"
+  log.info "Output dir for references         : $params.reference_dir"
+  log.info ""
+  log.info "======================= Run options ========================"
+  log.info "Phylogenetic method               : $params.phylo_method"
+  log.info "Alignment method                  : $params.align_method"
+  log.info "Number of threads                 : $params.cpus"
+  log.info "Lineage(s) to look for            : $params.lineage"
+  log.info "MEGAN VM options file             : $params.megan_vmoptions"
+  log.info ""
+  log.info "Binaries location (use default if singularity image is used)"
+  log.info "location of MEGAN6                : $params.megan_dir"
+  log.info "Python 3 binary used              : $params.python3"
+  log.info ""
+  log.info ""
+}
+
+def helpMessage() {
+  // Display help message
+  log.info "========================== Usage ==========================="
+  log.info ""
+  log.info "Example:"
+  log.info "nextflow run main.nf --reference_classes eggnog.txt"
+  log.info "           --project_list bioprojects.txt"
+  log.info "           --database 'ena'"
+  log.info "           --phylo_method 'fasttree'"
+  log.info "           --align_method 'mafft-einsi'"
+  log.info "           --queries_dir queries_output"
+  log.info "           --reference_dir ref_output"
+  log.info "           --megan_vmoptions 'MEGAN.vmoptions'"
+  log.info "           --lineage 'Rickettsiales','Pelagibacterales'"
+  log.info "           --cpus 20"
+  log.info ""
+  log.info "Options:"
+  log.info "--help, --h                       : Show this help and exit"
+  log.info "====================== Query options ======================="
+  log.info "--fastq FASTQ_FILE(S)             : Use local fastq or fasta file(s), can be"
+  log.info "                                    gzipped"
+  log.info "--project_list SRA_FILE           : File with list of BioProject ids or run ids"
+  log.info "--is_runs BOOLEAN                 : Use run ids instead of project ids"
+  log.info "                                    (default False)"
+  log.info "--database DATABASE               : Sequence DB to download from (values:"
+  log.info "                                    ena [default] or ncbi)"
+  log.info ""
+  log.info "==================== References options ===================="
+  log.info "One of these must be set, but combinations are possible"
+  log.info "--reference_classes EGGNOG_LIST   : File with list of EggNOG classes to process"
+  log.info "--reference_packages RPKG(S)      : Precomputed reference pkgs from previous"
+  log.info "                                    PhyloMagnet run (tarred and gzipped)"
+  log.info "--local_ref REFERENCE(S)          : Local reference OG(s) in fasta"
+  log.info "                                  :  format"
+  log.info ""
+  log.info "====================== Output options ======================"
+  log.info "--queries_dir QUERIES_DIR         : Output dir for queries (default 'queries')"
+  log.info "--reference_dir REFERENCE_DIR     : Output dir for references (default"
+  log.info "                                    'references')"
+  log.info ""
+  log.info "======================= Run options ========================"
+  log.info "--phylo_method PHYLO_METHOD       : Phylogenetic method to compute reference"
+  log.info "                                    trees (values: iqtree,fasttree, raxml)"
+  log.info "--align_method ALIGN_METHOD       : Alignment method used to create reference"
+  log.info "                                    alignments (values: mafft(-*), prank)"
+  log.info "--cpus THREADS                    : Number of threads to be used"
+  log.info "--lineages LINEAGE(S)             : Lineage(s) to look for (use e.g.  'family'"
+  log.info "                                    to compute a profile of all found labels"
+  log.info "                                    at a specific taxonomic rank)"
+  log.info "--megan_vmoptions VMOPTIONS       : MEGAN VM options file (important to set"
+  log.info "                                    your machine's memory capacity here)"
+  log.info ""
+  log.info "Binaries location (use default if singularity image is used)"
+  log.info "--megan_dir MEGAN_DIR             : location of MEGAN6"
+  log.info "--python3 PYTHON3                 : Python 3 binary used"
+  log.info ""
 }
