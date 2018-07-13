@@ -23,7 +23,7 @@ if (params.help || params.h ){
   log.info "ERROR: no reference sequences given, will not continue"
   helpMessage()
   exit 0
-}else if (!params.fastq && !params.project_list) {
+}else if (!(params.fastq || params.project_list)) {
   log.info "WARNING: no query sequences or IDs given, but will continue to prepare references"
 }
 
@@ -49,7 +49,6 @@ local_ref_include = local_ref_include_raw.ifEmpty("execute anyway")
 Channel.from(file(params.megan_vmoptions)).into { megan_vmoptions_meganizer; megan_vmoptions_assembler }
 
 ref_packages = optional_channel_from_path(params.reference_packages)
-
 
 
 
@@ -124,6 +123,7 @@ process unpackRefPackage {
   script:
   """
   tar xzfv $rpkg
+  md5sum --status --check ${rpkg.simpleName}.md5
   """
 }
 
