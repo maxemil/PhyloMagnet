@@ -17,7 +17,7 @@ def get_counts_sample_taxon(df):
         counts[s].loc[t] = df[(df["Sample"] == s) & (df["Taxon"] == t)].shape[0]
     return counts
 
-def get_taxa_to_remove(counts, trees):
+def get_taxa_to_remove(counts, trees, threshold):
     low = counts.apply(lambda x: all(x < threshold * len(trees)), axis=1)
     low  = low[low == True].index
     return low
@@ -38,7 +38,7 @@ def main(threshold, infile, filter_taxa=True):
     df = df[df['value'] == 'True']
 
     counts = get_counts_sample_taxon(df)
-    low = get_taxa_to_remove(counts, set(df['Tree']))
+    low = get_taxa_to_remove(counts, set(df['Tree']), threshold)
 
     df = df[df.apply(lambda row: not any([row['Taxon'] == l for l in low]), axis=1)]
     make_barplot(df)
@@ -49,6 +49,6 @@ def main(threshold, infile, filter_taxa=True):
     make_heatmap(counts)
 
 if __name__ == '__main__':
-    threshold = 0.25
+    threshold = "${params.threshold}"
     infile = "tree_decisions.txt"
-    main(threshold, infile, False)
+    main(threshold, infile, True)
