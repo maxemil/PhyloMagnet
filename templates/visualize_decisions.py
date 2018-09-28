@@ -49,6 +49,6 @@ def main(threshold, infile, filter_taxa=True):
     make_heatmap(counts)
 
 if __name__ == '__main__':
-    threshold = "${params.threshold}"
+    threshold = ${params.plot_threshold}
     infile = "tree_decisions.txt"
     main(threshold, infile, True)

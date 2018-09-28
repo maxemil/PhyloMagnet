@@ -523,7 +523,7 @@ process magnetizeTrees {
 
     output:
     file "decision_${profile.baseName.tokenize('-')[1]}.txt" into decisions
-    stdout x
+    file "decision_${profile.baseName.tokenize('-')[1]}.log" into decision_logs
 
     tag "${profile.baseName} - $lineage"
     publishDir "${params.queries_dir}/${profile.simpleName.tokenize('-')[0]}", mode: 'copy', overwrite: 'true'
@@ -534,7 +534,6 @@ process magnetizeTrees {
     else
         template 'magnetize_tree.py'
 }
-x.subscribe{print it}
 
 boolean fileSuccessfullyDeleted = new File("${params.queries_dir}/tree_decisions.txt").delete()
 decisions_concat = decisions.collectFile(name: 'tree_decisions.txt', storeDir: params.queries_dir)
@@ -637,7 +636,8 @@ def startupMessage() {
   log.info "Alignment method                  : $params.align_method"
   log.info "Number of threads                 : $params.cpus"
   log.info "Lineage(s) to look for            : $params.lineage"
-  log.info "Threshold to plot tax labels      : $params.threshold"
+  log.info "Threshold to plot tax labels      : $params.plot_threshold"
+  log.info "Threshold to detect tax labels    : $params.aLWR_threshold"
   log.info "MEGAN VM options file             : $params.megan_vmoptions"
   log.info ""
   log.info "Binaries location (use default if singularity image is used)"
@@ -696,8 +696,10 @@ def helpMessage() {
   log.info "--lineages LINEAGE(S)             : Lineage(s) to look for (use e.g.  'family'"
   log.info "                                    to compute a profile of all found labels"
   log.info "                                    at a specific taxonomic rank)"
-  log.info "--threshold                       : Minimum number of ref trees a tax label "
+  log.info "--plot_threshold                  : Minimum number of ref trees a tax label "
   log.info "                                    must occur in to be included in plots"
+  log.info "--aLWR_threshold                  : Minimum aLWR value (see epa-ng and gappa)"
+  log.info "                                    for a tax label to be detected in a tree"
   log.info "--megan_vmoptions VMOPTIONS       : MEGAN VM options file (important to set"
   log.info "                                    your machine's memory capacity here)"
   log.info ""

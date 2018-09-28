@@ -22,16 +22,16 @@ def run(profile, lineage, samplename, genename):
     df = pd.read_csv(profile, sep='\\t')
     df['taxopath'] = df['taxopath'].astype(str)
     lineage_results = df[df['taxopath'].apply(lambda x: lineage in x and not '{};'.format(lineage) in x)]
-    with open('decision_%s.txt' % genename, 'w') as out:
+    with open('decision_%s.txt' % genename, 'w') as out, open('decision_%s.log' % genename, 'w') as log:
         try:
-            if lineage_results['aLWR'].item() >= 1:
-                print("{} present in sample {} (tree {})".format(lineage, samplename, genename))
+            if lineage_results['aLWR'].item() >= ${params.aLWR_threshold}:
+                print("{} present in sample {} (tree {})".format(lineage, samplename, genename), file=log)
                 print("{}\\t{}\\t{}\\tTrue".format(samplename, genename, lineage), file=out)
             else:
-                print("{} NOT present in sample {} (tree {})".format(lineage, samplename, genename))
+                print("{} NOT present in sample {} (tree {})".format(lineage, samplename, genename), file=log)
                 print("{}\\t{}\\t{}\\tFalse".format(samplename, genename, lineage), file=out)
         except ValueError:
-            print("{} NOT present in sample {} (tree {})".format(lineage, samplename, genename))
+            print("{} NOT present in sample {} (tree {})".format(lineage, samplename, genename), file=log)
             print("{}\\t{}\\t{}\\tFalse".format(samplename, genename, lineage), file=out)
 
 
