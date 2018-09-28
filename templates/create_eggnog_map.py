@@ -51,7 +51,7 @@ def commonprefix(taxon_paths):
 
 
 def clean_rec_id(recid):
-    illegal_chars = [":", ",", ")", "(", ";", "]", "[", "'", " ", "/"]
+    illegal_chars = ":,();[]' /+%\$@#&*<=>^!?\\{\\}\\"`"
     for c in illegal_chars:
         recid = recid.replace(c, '')
     return recid
