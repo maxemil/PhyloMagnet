@@ -21,7 +21,7 @@ def check_references_lineage(ref_taxonmy, lineage, samplename, genename):
 def run(profile, lineage, samplename, genename):
     df = pd.read_csv(profile, sep='\\t')
     df['taxopath'] = df['taxopath'].astype(str)
-    lineage_results = df[df['taxopath'].apply(lambda x: lineage in x and not '{};'.format(lineage) in x)]
+    lineage_results = df[df['taxopath'].apply(lambda x: lineage == x.split(';')[-1])]
     with open('decision_%s.txt' % genename, 'w') as out, open('decision_%s.log' % genename, 'w') as log:
         try:
             if lineage_results['aLWR'].item() >= ${params.aLWR_threshold}:

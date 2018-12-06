@@ -32,7 +32,7 @@ def run(profile, lineages, samplename, genename):
     with open('decision_%s.txt' % genename, 'w') as out, open('decision_%s.log' % genename, 'w') as log:
         for lineage in lineages:
             try:
-                lineage_results = df[df['taxopath'].apply(lambda x: lineage in x and not '{};'.format(lineage) in x)]
+                lineage_results = df[df['taxopath'].apply(lambda x: lineage == x.split(';')[-1])]
                 if lineage_results['aLWR'].item() >= ${params.aLWR_threshold}:
                     print("{} present in sample {} (tree {})".format(lineage, samplename, genename), file=log)
                     print("{}\\t{}\\t{}\\tTrue".format(samplename, genename, lineage), file=out)
