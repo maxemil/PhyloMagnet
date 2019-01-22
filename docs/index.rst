@@ -7,8 +7,9 @@ Contents:
    :maxdepth: 2
 
    contents/installation
+   contents/command_line_options
    contents/example
-
+   contents/contact
 
 Indices and tables
 ==================

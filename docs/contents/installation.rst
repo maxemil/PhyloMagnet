@@ -2,7 +2,7 @@ Installation Instructions for PhyloMagnet
 =========================================
 Nextflow
 --------
-To run PhyloMagnet, you will need to install `Nextflow <https://www.nextflow.io/>`_, a pipeline execution framwork. This is however quite simple:
+To run PhyloMagnet, you will need to install `Nextflow <https://www.nextflow.io/>`_, a pipeline execution framework. This is however quite simple:
 
 .. code-block:: bash
 
@@ -15,7 +15,7 @@ We provide a singularity container with all necessary tools installed and config
 
 .. code-block:: bash
 
-  VERSION=2.4
+  VERSION=2.6
   wget https://github.com/singularityware/singularity/releases/download/$VERSION/singularity-$VERSION.tar.gz
   tar xvf singularity-$VERSION.tar.gz
   cd singularity-$VERSION
@@ -33,8 +33,15 @@ Then, download the container from singularity-hub or build it locally with the s
   sudo singularity build PhyloMagnet.simg Singularity
 
 
-When building the image from the singularity recipe yourself, you can adjust the JVM options for MEGAN by changing the file MEGAN.vmoptions. This is necessary if you are planning to use large FastQ files or need other specific options (especially memory requirements) for the daa-meganizer and the gc-assembler programs.
-
 .. note::
 
-  We highly recommend using the provided Singularity container to install all needed Software! Installing everything manually can be very cumbersome. If you want to do that, look at the %post section of the singularity file for the needed tools and how to install them
+  We highly recommend using the provided Singularity container to install all needed Software! Installing everything manually can be very cumbersome. If you want to do that, look at the %post section of the singularity file to get an idea what tools are needed and how to install them
+
+PhyloMagnet
+--------
+
+now you can either get PhyloMagnet from github (clone or download from github.com/maxemil/PhyloMagnet) or let Nextflow handle that as well:
+
+.. code-block:: bash
+
+  nextflow run maxemil/PhyloMagnet --help
