@@ -1,30 +1,27 @@
 Bootstrap: docker
 From: debian:stretch
 
-%files
-lib/*.py /usr/local/
-
 %labels
 Maintainer	max-emil.schon@icm.uu.se
 
 %environment
 PYTHONPATH='/usr/local/custom_python3_lib/'
 export PYTHONPATH
-VERSION_MEGAN="6.11.1"
+VERSION_MEGAN="6_14_2"
 export VERSION_MEGAN
 VERSION_PYTHON3=$(python3 --version | cut -d' ' -f2)
 export VERSION_PYTHON3
 VERSION_TRIMAL=$(trimal --version | cut -d ' ' -f2)
 export VERSION_TRIMAL
-VERSION_MAFFT="7.312"
+VERSION_MAFFT="7.407"
 export VERSION_MAFFT
-VERSION_DIAMOND="0.9.21"
+VERSION_DIAMOND="0.9.24"
 export VERSION_DIAMOND
 VERSION_FASTQ_DUMP=$(fastq-dump --version | cut -d':' -f2)
 export VERSION_FASTQ_DUMP
 VERSION_FASTTREE=$(FastTree 2>&1 >/dev/null | grep Usage | cut -d' ' -f 5)
 export VERSION_FASTTREE
-VERSION_IQTREE="1.6.3"
+VERSION_IQTREE="1.6.9"
 export VERSION_IQTREE
 VERSION_PRANK=$(prank -version | grep PRANK | cut -d' ' -f4)
 export VERSION_PRANK
@@ -55,6 +52,7 @@ apt-get install --no-install-recommends -qy \
                   wget \
                   vim \
                   tk \
+                  zlib1g-dev \
                   libxml-simple-perl \
                   libtime-piece-perl \
                   libdigest-md5-file-perl \
@@ -77,16 +75,14 @@ apt-get install --no-install-recommends -qy \
 
 ######## MEGAN6 ########
 cd /usr/local/
-wget http://ab.inf.uni-tuebingen.de/data/software/megan6/download/MEGAN_Community_unix_6_11_1.sh
-chmod +x MEGAN_Community_unix_6_11_1.sh
-./MEGAN_Community_unix_6_11_1.sh -q
+wget http://ab.inf.uni-tuebingen.de/data/software/megan6/download/MEGAN_Community_unix_"$VERSION_MEGAN".sh
+chmod +x MEGAN_Community_unix_"$VERSION_MEGAN".sh
+./MEGAN_Community_unix_"$VERSION_MEGAN".sh -q
 
 ######## python ########
 pip3 install wheel
 pip3 install biopython ete3 scipy pandas seaborn xvfbwrapper pyqt5 requests
 rm /usr/local/bin/ete3
-mkdir -p /usr/local/custom_python3_lib/
-mv /usr/local/*.py /usr/local/custom_python3_lib/
 
 ######## PRANK #########
 cd /usr/local/
@@ -105,9 +101,9 @@ ln -s /usr/local/trimal/source/trimal /usr/local/bin/
 
 ######## MAFFT #########
 cd /usr/local/
-wget https://mafft.cbrc.jp/alignment/software/mafft-7.312-without-extensions-src.tgz
-tar xfvz mafft-7.312-without-extensions-src.tgz
-cd  /usr/local/mafft-7.312-without-extensions/core
+wget https://mafft.cbrc.jp/alignment/software/mafft-"$VERSION_MAFFT"-without-extensions-src.tgz
+tar xfvz mafft-"$VERSION_MAFFT"-without-extensions-src.tgz
+cd  /usr/local/mafft-"$VERSION_MAFFT"-without-extensions/core
 make clean
 make
 make install
@@ -116,7 +112,7 @@ make install
 cd /usr/local
 mkdir diamond
 cd diamond
-wget https://github.com/bbuchfink/diamond/releases/download/v0.9.21/diamond-linux64.tar.gz
+wget https://github.com/bbuchfink/diamond/releases/download/v"$VERSION_DIAMOND"/diamond-linux64.tar.gz
 tar xzf diamond-linux64.tar.gz
 ln -s /usr/local/diamond/diamond /usr/local/bin/
 
@@ -131,9 +127,9 @@ cp FastTreeMP FastTree
 
 ######## IQtree #########
 cd /usr/local
-wget https://github.com/Cibiv/IQ-TREE/releases/download/v1.6.3/iqtree-1.6.3-Linux.tar.gz
-tar -xvf iqtree-1.6.3-Linux.tar.gz
-ln -s /usr/local/iqtree-1.6.3-Linux/bin/iqtree /usr/local/bin/iqtree
+wget https://github.com/Cibiv/IQ-TREE/releases/download/v"$VERSION_IQTREE"/iqtree-"$VERSION_IQTREE"-Linux.tar.gz
+tar -xvf iqtree-"$VERSION_IQTREE"-Linux.tar.gz
+ln -s /usr/local/iqtree-"$VERSION_IQTREE"-Linux/bin/iqtree /usr/local/bin/iqtree
 
 ####### EPA-ng #########
 cd /usr/local
