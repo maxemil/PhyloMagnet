@@ -43,6 +43,11 @@ VERSION_NUMPY=$(python3 -c 'import numpy; print(numpy.__version__)')
 export VERSION_NUMPY
 
 %post
+VERSION_MEGAN="6_14_2"
+VERSION_MAFFT="7.407"
+VERSION_DIAMOND="0.9.24"
+VERSION_IQTREE="1.6.9"
+VERSION_GAPPA='v0.0.0'
 ######## base system ########
 apt-get update
 apt-get clean
