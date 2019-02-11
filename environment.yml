@@ -1,0 +1,26 @@
+name: PhyloMagnet-0.6
+channels:
+  - bioconda
+  - conda-forge
+  - defaults
+  - etetoolkit
+dependencies:
+  - anaconda::openjdk=8.0.152
+  - bioconda::mafft=7.407
+  - bioconda::sra-tools=2.9.1_1
+  - bioconda::trimal=1.4.1
+  - bioconda::diamond=0.9.24
+  - bioconda::fasttree=2.1.10
+  - bioconda::iqtree=1.6.9
+  - bioconda::raxml=8.2.12
+  - bioconda::megan=6.12.3
+  - bioconda::prank=v.170427
+  - bioconda::epa-ng=0.3.4
+  - bioconda::gappa=0.1.0
+  - conda-forge::pandas=0.23.1
+  - conda-forge::Biopython=1.72
+  - conda-forge::numpy=1.14.5
+  - conda-forge::matplotlib=3.0.2
+  - conda-forge::seaborn=0.9.0
+  - etetoolkit::ete3=3.1.1
+# missing papara=2.5
