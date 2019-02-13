@@ -7,7 +7,7 @@ Using Bioproject IDs and eggNOG references
 
 .. code-block:: bash
 
-   nextflow run main.nf --reference_classes eggnog.txt \
+   nextflow run maxemil/PhyloMagnet --reference_classes eggnog.txt \
                          --project_list bioprojects.txt \
                          --phylo_method fasttree \
                          --queries_dir queries_output \
@@ -24,7 +24,7 @@ Using SRA run IDs and local references
 
 .. code-block:: bash
 
-   nextflow run main.nf --local_ref customOG.fasta \
+   nextflow run maxemil/PhyloMagnet --local_ref customOG.fasta \
                          --project_list sra_runs.txt \
                          --is_runs true \
                          --phylo_method fasttree \
@@ -42,7 +42,7 @@ Using local FastQ file and local + eggNOG references
 
 .. code-block:: bash
 
-   nextflow run main.nf --reference_classes eggnog.txt \
+   nextflow run maxemil/PhyloMagnet --reference_classes eggnog.txt \
                          --local_ref customOG.fasta \
                          --phylo_method fasttree \
                          --fastq local_metagenome.fastq.gz
