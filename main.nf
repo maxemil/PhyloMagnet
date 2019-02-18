@@ -410,19 +410,19 @@ process buildTreefromReferences {
   if (params.phylo_method.startsWith("iqtree"))
     """
     ${params.phylo_method} -s ${reference_alignment} -m LG+G+F -nt AUTO -ntmax ${task.cpus} -pre ${reference_alignment.simpleName}
-    raxml -f e -s ${reference_alignment} -t ${reference_alignment.simpleName}.treefile -T ${task.cpus} -n file -m PROTGAMMALGF
+    raxmlHPC-PTHREADS -f e -s ${reference_alignment} -t ${reference_alignment.simpleName}.treefile -T ${task.cpus} -n file -m PROTGAMMALGF
     mv RAxML_info.file ${reference_alignment.simpleName}.modelfile
     mv ${reference_alignment.simpleName}.log ${reference_alignment.simpleName}.tree.log
     """
   else if (params.phylo_method == "fasttree")
     """
     FastTree -log ${reference_alignment.simpleName}.tree.log -lg ${reference_alignment} > ${reference_alignment.simpleName}.treefile
-    raxml -f e -s ${reference_alignment} -t ${reference_alignment.simpleName}.treefile -T ${task.cpus} -n file -m PROTGAMMALGF
+    raxmlHPC-PTHREADS -f e -s ${reference_alignment} -t ${reference_alignment.simpleName}.treefile -T ${task.cpus} -n file -m PROTGAMMALGF
     mv RAxML_info.file ${reference_alignment.simpleName}.modelfile
     """
   else if (params.phylo_method == "raxml")
     """
-    raxml -f e -s ${reference_alignment} -t ${reference_alignment.simpleName}.treefile -T ${task.cpus} -n file -m PROTGAMMALGF
+    raxmlHPC-PTHREADS -f e -s ${reference_alignment} -t ${reference_alignment.simpleName}.treefile -T ${task.cpus} -n file -m PROTGAMMALGF
     mv RAxML_log.file ${reference_alignment.simpleName}.tree.log
     """
 }
@@ -464,6 +464,8 @@ process splitAlignmentsRefQuery {
 
 
   script:
+  //todo USE epa-ng --split $gene.ref.phy papara_alignment.$gene
+  //mv query.fasta $gene.quer.aln
   template 'split_alignments_ref_query.py'
 }
 
