@@ -28,6 +28,7 @@ We provide a singularity container with all necessary tools installed and config
 Then, download the container from singularity-hub or build it locally with the singularity recipe:
 
 .. code-block:: bash
+
   # singularity 2
 
   singularity pull --name PhyloMagnet.simg shub://maxemil/PhyloMagnet:latest
