@@ -85,8 +85,8 @@ for references from EggNOG and local files, not packages. Accepted values:
 Alignment method (``--align_method``)
 ``````
 Alignment tool used to compute reference alignments. Only used for references
-from EggNOG and local files, not packages. Accepted values: ``maftt-*``,
- ``prank``.
+from EggNOG and local files, not packages.
+Accepted values: ``maftt-*``, ``prank``.
 
 
 Taxonomic lineage (``--lineage``)
