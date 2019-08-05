@@ -18,6 +18,7 @@ versionLogo()
 
 if (params.help || params.h ){
   helpMessage()
+  citationInfo()
   exit 0
 }else if ( !(params.local_ref || params.reference_classes || params.reference_packages) ) {
   log.info "ERROR: no reference sequences given, will not continue"
@@ -27,6 +28,7 @@ if (params.help || params.h ){
   log.info "WARNING: no query sequences or IDs given, but will continue to prepare references"
 }
 
+citationInfo()
 startupMessage()
 
 // reads a list of Bioproject IDs, but testing only on one single ID
@@ -447,7 +449,7 @@ process alignQueriestoRefMSA {
   """
   trimal -in $refalignment -out ${refalignment.simpleName}.phy -phylip
   papara -t $reftree -s ${refalignment.simpleName}.phy -q $contigs -a -n ${contigs.simpleName} -r
-  trimal -in papara_alignment.${contigs.simpleName} -out ${contigs.simpleName}.ref.aln -fasta
+  mv papara_alignment.${contigs.simpleName} ${contigs.simpleName}.ref.aln
   """
 }
 
@@ -464,9 +466,11 @@ process splitAlignmentsRefQuery {
 
 
   script:
-  //todo USE epa-ng --split $gene.ref.phy papara_alignment.$gene
-  //mv query.fasta $gene.quer.aln
-  template 'split_alignments_ref_query.py'
+  """
+  trimal -in $refalignment -out ${refalignment.simpleName}.phy -phylip
+  epa-ng --split ${refalignment.simpleName}.phy $queryalignment
+  mv query.fasta ${queryalignment.simpleName}.queries.aln
+  """
 }
 
 
@@ -614,6 +618,27 @@ def versionLogo() {
   log.info "Author                            : Max Emil Schön"
   log.info "email                             : max-emil.schon@icm.uu.se"
   log.info "version                           : $revision"
+  log.info ""
+}
+
+def citationInfo() {
+  log.info "========================= Citation ========================="
+  log.info "PhyloMagnet is not yet published and only available as a"
+  log.info "preprint on BioRxiv: https://www.biorxiv.org/content/10.1101/688465v2"
+  log.info ""
+  log.info "Additionally, if you find PhyloMagnet useful, please also cite"
+  log.info "the tools that it is based on. The corresponding citations for"
+  log.info "these tools can be found here:"
+  log.info "raxml-ng: doi:10.1093/bioinformatics/btz305"
+  log.info "epa-ng: doi:10.1093/sysbio/syy054"
+  log.info "iqtree: doi:10.1093/molbev/msu300 and http://www.iqtree.org/"
+  log.info "diamond: doi:10.1038/nmeth.3176"
+  log.info "FastTree: doi:10.1371/journal.pone.0009490"
+  log.info "megan: doi:10.1371/journal.pcbi.1004957 and doi:10.1186/s40168-017-0233-2"
+  log.info "mafft: doi:10.1093/molbev/mst010"
+  log.info "prank: doi:10.1007/978-1-62703-646-7_10"
+  log.info "gappa: doi:10.1101/647958"
+  log.info "papara: doi:10.1093/bioinformatics/btr320"
   log.info ""
 }
 
