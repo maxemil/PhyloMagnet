@@ -9,6 +9,13 @@ jdk:
   - oraclejdk8
   - oraclejdk9
 
+go:
+  - 1.12
+
+addons:
+  apt:
+    packages:
+
 install:
   - test/install_trusty.sh
 

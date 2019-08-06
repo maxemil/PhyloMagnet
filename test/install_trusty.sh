@@ -1,28 +1,15 @@
-sudo apt-get -qq update
-sudo apt-get install -y \
-    build-essential \
-    libssl-dev \
-    uuid-dev \
-    libgpgme11-dev \
-    squashfs-tools \
-    libseccomp-dev \
-    wget \
-    pkg-config \
-    golang-go
+SINGULARITY_BASE="${GOPATH}/src/github.com/sylabs/singularity"
+export PATH="${GOPATH}/bin:${PATH}"
 
+mkdir -p "${GOPATH}/src/github.com/sylabs"
+cd "${GOPATH}/src/github.com/sylabs"
 
-echo 'export GOPATH=${HOME}/go' >> ~/.bashrc && \
-  echo 'export PATH=/usr/local/go/bin:${PATH}:${GOPATH}/bin' >> ~/.bashrc && \
-  source ~/.bashrc
+git clone -b release-3.3 https://github.com/sylabs/singularity
+cd singularity
 
-export VERSION=3.3.0 && # adjust this as necessary \
-  wget https://github.com/sylabs/singularity/releases/download/v${VERSION}/singularity-${VERSION}.tar.gz && \
-  tar -xzf singularity-${VERSION}.tar.gz && \
-  cd singularity
-
-./mconfig && \
-  make -C builddir && \
-  sudo make -C builddir install
+./mconfig -v -p /usr/local
+make -j `nproc 2>/dev/null || echo 1` -C ./builddir all
+sudo make -C ./builddir install
 #
 # VERSION=2.4
 # wget https://github.com/singularityware/singularity/releases/download/$VERSION/singularity-$VERSION.tar.gz
