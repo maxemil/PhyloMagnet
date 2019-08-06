@@ -1,22 +1,32 @@
 sudo apt-get -qq update
-
+sudo apt-get install -y \
+    build-essential \
+    libssl-dev \
+    uuid-dev \
+    libgpgme11-dev \
+    squashfs-tools \
+    libseccomp-dev \
+    wget \
+    pkg-config \
+    git
 
 export VERSION=1.12 OS=linux ARCH=amd64 && \
   wget https://dl.google.com/go/go$VERSION.$OS-$ARCH.tar.gz && \
   sudo tar -C /usr/local -xzvf go$VERSION.$OS-$ARCH.tar.gz && \
   rm go$VERSION.$OS-$ARCH.tar.gz
 
-echo 'export PATH=/usr/local/go/bin:$PATH' >> ~/.bashrc && \
-source ~/.bashrc
+echo 'export GOPATH=${HOME}/go' >> ~/.bashrc && \
+  echo 'export PATH=/usr/local/go/bin:${PATH}:${GOPATH}/bin' >> ~/.bashrc && \
+  source ~/.bashrc
 
 export VERSION=3.3.0 && # adjust this as necessary \
-    wget https://github.com/sylabs/singularity/releases/download/v${VERSION}/singularity-${VERSION}.tar.gz && \
-    tar -xzf singularity-${VERSION}.tar.gz && \
-    cd singularity
+  wget https://github.com/sylabs/singularity/releases/download/v${VERSION}/singularity-${VERSION}.tar.gz && \
+  tar -xzf singularity-${VERSION}.tar.gz && \
+  cd singularity
 
 ./mconfig && \
-    make -C builddir && \
-    sudo make -C builddir install
+  make -C builddir && \
+  sudo make -C builddir install
 #
 # VERSION=2.4
 # wget https://github.com/singularityware/singularity/releases/download/$VERSION/singularity-$VERSION.tar.gz
