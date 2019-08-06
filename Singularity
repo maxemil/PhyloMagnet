@@ -7,7 +7,7 @@ Bootstrap:docker
     VERSION 0.7
 
 %environment
-    PATH=/opt/conda/envs/PhyloMagnet-$VERSION/bin:$PATH
+    PATH=/opt/conda/envs/PhyloMagnet-0.7/bin:$PATH
     export PATH
 
 %files

@@ -23,6 +23,6 @@ else
 fi
 }
 
-singularity pull -U --name PhyloMagnet.sif library://maxemil/default/phylomagnet:0.7
+singularity pull --name PhyloMagnet.sif shub://maxemil/PhyloMagnet
 
 run_simple
