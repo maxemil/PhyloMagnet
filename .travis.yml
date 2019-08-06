@@ -2,19 +2,31 @@ dist: trusty
 
 sudo: required
 
-language: java
+language: go
+
+go:
+  - 1.11
 
 jdk:
   - openjdk8
   - oraclejdk8
   - oraclejdk9
 
-go:
-  - 1.12
-
 addons:
   apt:
     packages:
+      - pkg-config
+      - uuid-dev
+      - libssl-dev
+      - libseccomp-dev
+      - squashfs-tools
+      - libgpgme11-dev
+
+matrix:
+  include:
+    - jdk: "openjdk8"
+    - jdk: "oraclejdk8"
+    - jdk: "oraclejdk9"
 
 install:
   - test/install_trusty.sh
