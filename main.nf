@@ -412,20 +412,23 @@ process buildTreefromReferences {
   if (params.phylo_method.startsWith("iqtree"))
     """
     ${params.phylo_method} -s ${reference_alignment} -m LG+G+F -nt AUTO -ntmax ${task.cpus} -pre ${reference_alignment.simpleName}
-    raxmlHPC-PTHREADS -f e -s ${reference_alignment} -t ${reference_alignment.simpleName}.treefile -T ${task.cpus} -n file -m PROTGAMMALGF
-    mv RAxML_info.file ${reference_alignment.simpleName}.modelfile
+    raxml-ng --evaluate --msa ${reference_alignment} --tree ${reference_alignment.simpleName}.treefile --threads ${task.cpus} --model LG+G+F --prefix info
+    mv info.raxml.bestModel ${reference_alignment.simpleName}.modelfile
     mv ${reference_alignment.simpleName}.log ${reference_alignment.simpleName}.tree.log
     """
   else if (params.phylo_method == "fasttree")
     """
     FastTree -log ${reference_alignment.simpleName}.tree.log -lg ${reference_alignment} > ${reference_alignment.simpleName}.treefile
-    raxmlHPC-PTHREADS -f e -s ${reference_alignment} -t ${reference_alignment.simpleName}.treefile -T ${task.cpus} -n file -m PROTGAMMALGF
-    mv RAxML_info.file ${reference_alignment.simpleName}.modelfile
+    raxml-ng --evaluate --msa ${reference_alignment} --tree ${reference_alignment.simpleName}.treefile --threads ${task.cpus} --model LG+G+F --prefix info
+    mv info.raxml.bestModel ${reference_alignment.simpleName}.modelfile
     """
   else if (params.phylo_method == "raxml")
     """
-    raxmlHPC-PTHREADS -f e -s ${reference_alignment} -t ${reference_alignment.simpleName}.treefile -T ${task.cpus} -n file -m PROTGAMMALGF
-    mv RAxML_log.file ${reference_alignment.simpleName}.tree.log
+    # raxmlHPC-PTHREADS -f e -s ${reference_alignment} -t ${reference_alignment.simpleName}.treefile -T ${task.cpus} -n file -m PROTGAMMALGF
+    raxml-ng --msa ${reference_alignment} --prefix ${reference_alignment.simpleName} --threads ${task.cpus} --model LG+G+F
+    mv ${reference_alignment.simpleName}.raxml.log ${reference_alignment.simpleName}.tree.log
+    mv ${reference_alignment.simpleName}.raxml.bestTree ${reference_alignment.simpleName}.treefile
+    mv ${reference_alignment.simpleName}.raxml.bestModel ${reference_alignment.simpleName}.modelfile
     """
 }
 

@@ -1,4 +1,4 @@
-name: PhyloMagnet-0.6
+name: PhyloMagnet-0.7
 channels:
   - bioconda
   - conda-forge
@@ -12,7 +12,7 @@ dependencies:
   - bioconda::diamond=0.9.24
   - bioconda::fasttree=2.1.10
   - bioconda::iqtree=1.6.9
-  - bioconda::raxml=8.2.12
+  - bioconda::raxml-ng=0.9.0
   - bioconda::megan=6.12.3
   - bioconda::prank=v.170427
   - bioconda::epa-ng=0.3.4

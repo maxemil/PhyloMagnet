@@ -1,7 +1,7 @@
 function run_simple()
 {
   nextflow run main.nf \
-            -with-singularity PhyloMagnet.simg \
+            -with-singularity phylomagnet_0.7.sif \
             --is_runs true \
             --fastq test/rpoB.fastq.gz \
             --reference_packages "test/rpkgs/*" \
@@ -23,6 +23,6 @@ else
 fi
 }
 
-singularity pull --name PhyloMagnet.simg shub://maxemil/PhyloMagnet:latest
+singularity pull --name PhyloMagnet.sif library://maxemil/default/phylomagnet:0.7
 
 run_simple
