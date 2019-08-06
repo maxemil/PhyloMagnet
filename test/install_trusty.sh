@@ -8,12 +8,8 @@ sudo apt-get install -y \
     libseccomp-dev \
     wget \
     pkg-config \
-    git
+    golang-go
 
-export VERSION=1.12 OS=linux ARCH=amd64 && \
-  wget https://dl.google.com/go/go$VERSION.$OS-$ARCH.tar.gz && \
-  sudo tar -C /usr/local -xzvf go$VERSION.$OS-$ARCH.tar.gz && \
-  rm go$VERSION.$OS-$ARCH.tar.gz
 
 echo 'export GOPATH=${HOME}/go' >> ~/.bashrc && \
   echo 'export PATH=/usr/local/go/bin:${PATH}:${GOPATH}/bin' >> ~/.bashrc && \
