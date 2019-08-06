@@ -1,7 +1,7 @@
 function run_simple()
 {
   nextflow run main.nf \
-            -with-singularity phylomagnet_0.7.sif \
+            -with-singularity PhyloMagnet.sif \
             --is_runs true \
             --fastq test/rpoB.fastq.gz \
             --reference_packages "test/rpkgs/*" \
