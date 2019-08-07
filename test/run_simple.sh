@@ -3,7 +3,7 @@ function run_simple()
   nextflow run main.nf \
             -with-singularity PhyloMagnet.sif \
             --is_runs true \
-            --fastq test/rpoB.fastq.gz \
+            --fastq "test/*rpoB.fastq.gz" \
             --reference_packages "test/rpkgs/*" \
             --lineage "order" \
             --megan_eggnog_map eggnog.map \

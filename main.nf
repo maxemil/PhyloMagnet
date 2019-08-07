@@ -270,7 +270,8 @@ process alignFastQFiles {
     file 'references.dmnd' from diamond_database.first()
 
     output:
-    file "${fq.simpleName}.daa" into daa_files
+    file "${fq.simpleName}.daa" into daa_files optional true
+    stdout diamond_align_out
 
     tag "${fq.simpleName}"
     //publishDir 'queries', mode: 'copy'
@@ -278,9 +279,14 @@ process alignFastQFiles {
     script:
     """
     diamond blastx -q ${fq} --db references.dmnd -f 100 --unal 0 -e 1e-6 --out ${fq.simpleName}.daa --threads ${task.cpus}
+    if [ ! \$(diamond view --daa ${fq.simpleName}.daa | wc -l) -gt 0 ];
+    then
+      rm ${fq.simpleName}.daa
+      echo "No queries were aligned for sample ${fq.simpleName}"
+    fi
     """
 }
-
+diamond_align_out.subscribe{print it}
 
 /*
   Prepare daa files for gc-assembler, using the daa-meganizer tool and
