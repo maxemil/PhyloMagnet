@@ -25,6 +25,9 @@ We provide a singularity container with all necessary tools installed and config
 
   # for installation of version 3 see the Singularity website
 
+
+Singularity container
+----------------
 Then, download the container from singularity-hub or build it locally with the singularity recipe:
 
 .. code-block:: bash
@@ -32,18 +35,25 @@ Then, download the container from singularity-hub or build it locally with the s
   # singularity 2
 
   singularity pull --name PhyloMagnet.simg shub://maxemil/PhyloMagnet:latest
-
+  # or
   sudo singularity build PhyloMagnet.simg Singularity
 
   # singularity 3
 
-  singularity pull library://maxemil/default/phylomagnet:0.6
-
+  singularity pull --name PhyloMagnet.sif shub://maxemil/PhyloMagnet:latest
+  # or
   sudo singularity build PhyloMagnet.sif Singularity
 
 .. note::
 
-  We highly recommend using the provided Singularity container to install all needed Software! Installing everything manually can be very cumbersome. If you want to do that, look at the %post section of the singularity file to get an idea what tools are needed and how to install them
+  We highly recommend using the provided Singularity container to install all needed Software. Installing everything directly on the machine can be achieved using the conda environment.yml file.
+
+If you want to see the version of the tools installed in the container, simply use conda to list all installed packages:
+
+.. code-block:: bash
+
+  singularity exec PhyloMagnet.sif conda list -n PhyloMagnet-<version>
+
 
 PhyloMagnet
 --------
