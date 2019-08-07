@@ -1,5 +1,5 @@
-From:continuumio/miniconda3:4.6.14
 Bootstrap:docker
+From:continuumio/miniconda3:4.6.14
 
 %labels
     MAINTAINER Max Emil Schön <max-emil.schon@icm.uu.se>
