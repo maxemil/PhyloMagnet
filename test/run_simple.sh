@@ -23,6 +23,6 @@ else
 fi
 }
 
-singularity pull --name PhyloMagnet.sif shub://maxemil/PhyloMagnet
+sudo singularity build PhyloMagnet.sif Singularity
 
 run_simple
