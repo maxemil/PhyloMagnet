@@ -20,7 +20,7 @@ From:continuumio/miniconda3:4.6.14
 
     ####### parapa #########
     cd /usr/local/bin
-    wget https://sco.h-its.org/exelixis/resource/download/software/papara_nt-2.5-static_x86_64.tar.gz
+    wget https://cme.h-its.org/exelixis/resource/download/software/papara_nt-2.5-static_x86_64.tar.gz
     tar -xvf papara_nt-2.5-static_x86_64.tar.gz
     rm papara_nt-2.5-static_x86_64.tar.gz
     mv papara_static_x86_64 papara
