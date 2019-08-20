@@ -521,12 +521,12 @@ process assignContigs {
 
   script:
   """
-  gappa analyze assign --jplace-path $placed_contigs --taxon-file $tax_map --threads ${task.cpus}
-  mv profile.csv ${placed_contigs.simpleName}.csv
-  mv per_pquery_assign ${placed_contigs.simpleName}.assign
-  gappa analyze visualize-color --jplace-path $placed_contigs --write-svg-tree --threads ${task.cpus}
+  gappa examine assign --jplace-path $placed_contigs --taxon-file $tax_map --threads ${task.cpus}
+  mv profile.tsv ${placed_contigs.simpleName}.csv
+  mv per_query.tsv ${placed_contigs.simpleName}.assign
+  gappa examine heat-tree --jplace-path $placed_contigs --write-svg-tree --threads ${task.cpus}
   mv tree.svg ${placed_contigs.simpleName}.svg
-  gappa analyze graft --name-prefix 'Q_' --jplace-path $placed_contigs --threads ${task.cpus}
+  gappa examine graft --name-prefix 'Q_' --jplace-path $placed_contigs --threads ${task.cpus}
   """
 }
 
