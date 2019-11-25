@@ -18,6 +18,7 @@ dependencies:
   - bioconda::epa-ng=0.3.5
   - bioconda::gappa=0.5.0
   - conda-forge::pandas=0.23.1
+  - conda-forge::requests=2.22.0
   - conda-forge::Biopython=1.72
   - conda-forge::numpy=1.14.5
   - conda-forge::matplotlib=3.0.2
