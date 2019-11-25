@@ -4,7 +4,7 @@ export PATH="${GOPATH}/bin:${PATH}"
 mkdir -p "${GOPATH}/src/github.com/sylabs"
 cd "${GOPATH}/src/github.com/sylabs"
 
-git clone -b release-3.3 https://github.com/sylabs/singularity
+git clone -b vault/release-3.4 https://github.com/sylabs/singularity
 cd singularity
 
 ./mconfig -v -p /usr/local
