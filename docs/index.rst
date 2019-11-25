@@ -9,6 +9,7 @@ Contents:
    contents/installation
    contents/command_line_options
    contents/example
+   contents/troubleshooting
    contents/contact
 
 Indices and tables

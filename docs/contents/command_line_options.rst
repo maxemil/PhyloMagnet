@@ -7,7 +7,7 @@ To get a quick overview of all available command line options, run
   nextflow run maxemil/PhyloMagnet --help
 
 
-Query option
+Query options
 -----
 Fastq input (``--fastq``)
 ``````
@@ -35,7 +35,7 @@ ena's (``ena``) servers (depending on where you are, this might make a huge
 speed difference). Default is ``ena``
 
 
-References otions
+Reference options
 ------
 EggNOG reference Ids (``--reference_classes``)
 ``````

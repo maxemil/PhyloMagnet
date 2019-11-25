@@ -34,6 +34,9 @@ nextflow run main.nf \
           --align_method 'mafft-fftnsi' \
           -w test/work -resume
 ```
-## Author
+## Citing PhyloMagnet
 
-* [Max Emil Schön](https://github.com/maxemil), PhD student @ [Ettemalab](https://www.ettemalab.org), Uppsala University
+PhyloMagnet is published in Bioinformatics:
+Max E Schön, Laura Eme, Thijs J G Ettema, PhyloMagnet: fast and accurate screening of short-read meta-omics data using gene-centric phylogenetics, Bioinformatics, btz799, https://doi.org/10.1093/bioinformatics/btz799
+
+Please make sure to also cite all tools that are used in the pipeline if you use it for your research! Visit http://phylomagnet.readthedocs.io/en/latest/ or see the startup message for details.

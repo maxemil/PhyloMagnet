@@ -12,9 +12,8 @@ Using Bioproject IDs and eggNOG references
                          --phylo_method fasttree \
                          --queries_dir queries_output \
                          --reference_dir ref_output \
-                         --megan_eggnog_map eggnog_map.txt \
-                         --lineage Rickettsiales \
-                         --taxonomy_level_trees order \
+                         --lineage Rickettsiales,family \
+                         --megan_vmoptions MEGAN.vmoptions \
                          --cpus 20
 
 
@@ -30,9 +29,8 @@ Using SRA run IDs and local references
                          --phylo_method fasttree \
                          --queries_dir queries_output \
                          --reference_dir ref_output \
-                         --megan_eggnog_map eggnog_map.txt \
-                         --lineage Rickettsiales \
-                         --taxonomy_level_trees order \
+                         --lineage Rickettsiales,family \
+                         --megan_vmoptions MEGAN.vmoptions \
                          --cpus 20
 
 
@@ -48,7 +46,6 @@ Using local FastQ file and local + eggNOG references
                          --fastq local_metagenome.fastq.gz
                          --queries_dir queries_output \
                          --reference_dir ref_output \
-                         --megan_eggnog_map eggnog_map.txt \
-                         --lineage Rickettsiales \
-                         --taxonomy_level_trees order \
+                         --lineage Rickettsiales,family \
+                         --megan_vmoptions MEGAN.vmoptions \
                          --cpus 20
