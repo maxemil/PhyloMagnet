@@ -155,7 +155,7 @@ process includeLocalRef {
   then
     for c in *.class;
     do
-      if [ ! \$(grep -P "\\t\${c%%.*}\\s" eggnog.map) ];
+      if ! grep \$'\\t\${f%%.*}\\s\\|\\t\${f%%.*}\$' eggnog.map ;
       then
         cat \$c >> eggnog.map
       fi
@@ -164,7 +164,7 @@ process includeLocalRef {
 
   for f in *.fasta;
   do
-    if [ ! \$(grep "\${f%%.*}\\s" eggnog.map) ];
+    if ! grep \$'\\t\${f%%.*}\\s\\|\\t\${f%%.*}\$' eggnog.map ;
     then
       ID="\$((\$(tail -n 1 eggnog.map | cut -f1) + 1))"
       printf "%i\\t%s\\n" "\$ID" "\${f%%.*}" >> eggnog.map
