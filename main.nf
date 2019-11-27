@@ -155,7 +155,7 @@ process includeLocalRef {
   then
     for c in *.class;
     do
-      if [ ! \$(grep "\${c%%.*}\\s" eggnog.map) ];
+      if [ ! \$(grep -P "\\t\${c%%.*}\\s" eggnog.map) ];
       then
         cat \$c >> eggnog.map
       fi
