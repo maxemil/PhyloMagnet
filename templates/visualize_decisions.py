@@ -1,5 +1,6 @@
 #! ${params.python3}
 import matplotlib
+import sys
 matplotlib.use('Agg')
 import pandas as pd
 import seaborn as sns
@@ -23,7 +24,7 @@ def get_taxa_to_remove(counts, trees, threshold):
     return low
 
 def make_barplot(df):
-    ax = sns.factorplot(hue="Taxon", x="Sample", data=df, kind="count", legend_out=True, size=8, aspect=1.1)
+    ax = sns.catplot(hue="Taxon", x="Sample", data=df, kind="count", legend_out=True, height=8, aspect=1.1)
     plt.savefig('decision_barplot.pdf')
     plt.clf()
     plt.cla()
@@ -36,6 +37,9 @@ def make_heatmap(counts):
 def main(threshold, infile, filter_taxa=True):
     df = pd.read_csv(infile, sep='\\t', header=None, names=['Sample', 'Tree', 'Taxon', 'value'], dtype=str)
     df = df[df['value'] == 'True']
+    if df.empty:
+        print("Found no positive matches to your lineage - perhaps use the rank instead to get all hits (e.g. 'family')")
+        sys.exit()
 
     counts = get_counts_sample_taxon(df)
     low = get_taxa_to_remove(counts, set(df['Tree']), threshold)

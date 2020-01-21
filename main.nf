@@ -558,7 +558,8 @@ process visualizeDecisions {
     file decisions_concat
 
     output:
-    file "*.pdf" into decisions_visualizations
+    file "*.pdf" into decisions_visualizations optional true
+    stdout visualizeOut
 
     publishDir "${params.queries_dir}", mode: 'copy', overwrite: 'true'
 
@@ -566,6 +567,7 @@ process visualizeDecisions {
     template 'visualize_decisions.py'
 }
 
+visualizeOut.subscribe{print it}
 
 // code from J. Viklund of SciLifeLab Uppsala
 def grab_git_revision() {
