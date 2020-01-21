@@ -507,10 +507,11 @@ process assignContigs {
   each file(tax_map) from tax_map_combined
 
   output:
-  set file("${placed_contigs.simpleName}.csv"), file("$tax_map") into profiles
-  file "${placed_contigs.simpleName}.assign" into assignments
-  file "${placed_contigs.simpleName}.svg" into colored_tree_svg
-  file "${placed_contigs.simpleName}.newick" into placement_tree
+  set file("${placed_contigs.simpleName}.csv"), file("$tax_map") into profiles optional true
+  file "${placed_contigs.simpleName}.assign" into assignments optional true
+  file "${placed_contigs.simpleName}.svg" into colored_tree_svg optional true
+  file "${placed_contigs.simpleName}.newick" into placement_tree optional true
+  stdout assignOut
 
   publishDir "${params.queries_dir}/${placed_contigs.simpleName.tokenize('-')[0]}", mode: 'copy', pattern: "${placed_contigs.simpleName}*"
   tag "${placed_contigs.simpleName}"
@@ -521,15 +522,22 @@ process assignContigs {
 
   script:
   """
-  gappa examine assign --jplace-path $placed_contigs --taxon-file $tax_map --threads ${task.cpus}
-  mv profile.tsv ${placed_contigs.simpleName}.csv
-  mv per_query.tsv ${placed_contigs.simpleName}.assign
-  gappa examine heat-tree --jplace-path $placed_contigs --write-svg-tree --threads ${task.cpus}
-  mv tree.svg ${placed_contigs.simpleName}.svg
-  gappa examine graft --name-prefix 'Q_' --jplace-path $placed_contigs --threads ${task.cpus}
+  if \$(gappa examine info --jplace-path $placed_contigs);
+  then
+    gappa examine assign --jplace-path $placed_contigs --taxon-file $tax_map --threads ${task.cpus}
+    mv profile.tsv ${placed_contigs.simpleName}.csv
+    mv per_query.tsv ${placed_contigs.simpleName}.assign
+    gappa examine heat-tree --jplace-path $placed_contigs --write-svg-tree --threads ${task.cpus}
+    mv tree.svg ${placed_contigs.simpleName}.svg
+    gappa examine graft --name-prefix 'Q_' --jplace-path $placed_contigs --threads ${task.cpus}
+  else
+    echo "Error with placement (.jplace) file, probably it contains -nan as likelihood values"
+  fi
   """
+
 }
 
+assignOut.subscribe{print it}
 
 process magnetizeTrees {
     input:
