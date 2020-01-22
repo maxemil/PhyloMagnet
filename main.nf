@@ -339,7 +339,13 @@ process geneCentricAssembly {
     """
     vmOptions=\$(grep '^-' MEGAN.vmoptions | tr "\\n" " ")
     java \$vmOptions -cp "$params.megan_dir/jars/MEGAN.jar:data.jar" \
-          megan.tools.GCAssembler -i ${daa} -fun EGGNOG -id ALL -mic 99 -vv --minAvCoverage 2 -t ${task.cpus}
+          megan.tools.GCAssembler -i ${daa} -fun EGGNOG -id ALL -vv -t ${task.cpus} \
+                                  --minOverlapReads $params.megan_overlapreads \
+                                  --minLength  $params.megan_contiglength \
+                                  --minReads  $params.megan_numberreads \
+                                  --minAvCoverage  $params.megan_avcoverage \
+                                  --minOverlapContigs  $params.megan_overlapcontigs \
+                                  --minPercentIdentityContigs  $params.megan_identitycontigs
 
     while read id name ; do
     if [ -e ${daa.simpleName}-\$id.fasta ];
@@ -511,7 +517,6 @@ process assignContigs {
   file "${placed_contigs.simpleName}.assign" into assignments optional true
   file "${placed_contigs.simpleName}.svg" into colored_tree_svg optional true
   file "${placed_contigs.simpleName}.newick" into placement_tree optional true
-  stdout assignOut
 
   publishDir "${params.queries_dir}/${placed_contigs.simpleName.tokenize('-')[0]}", mode: 'copy', pattern: "${placed_contigs.simpleName}*"
   tag "${placed_contigs.simpleName}"
@@ -522,7 +527,7 @@ process assignContigs {
 
   script:
   """
-  if \$(gappa examine info --jplace-path $placed_contigs);
+  if gappa examine info --jplace-path $placed_contigs;
   then
     gappa examine assign --jplace-path $placed_contigs --taxon-file $tax_map --threads ${task.cpus}
     mv profile.tsv ${placed_contigs.simpleName}.csv
@@ -534,10 +539,7 @@ process assignContigs {
     echo "Error with placement (.jplace) file, probably it contains -nan as likelihood values"
   fi
   """
-
 }
-
-assignOut.subscribe{print it}
 
 process magnetizeTrees {
     input:
