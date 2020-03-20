@@ -548,7 +548,7 @@ process magnetizeTrees {
 
     output:
     file "decision_${profile.baseName.tokenize('-')[1]}.txt" into decisions
-    file "decision_${profile.baseName.tokenize('-')[1]}.log" into decision_logs
+    file "decision_${profile.baseName.tokenize('-')[1]}.log" into decision_logs optional true
 
     tag "${profile.baseName} - $lineage"
     publishDir "${params.queries_dir}/${profile.simpleName.tokenize('-')[0]}", mode: 'copy', overwrite: 'true'
