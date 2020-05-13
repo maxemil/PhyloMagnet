@@ -279,7 +279,7 @@ process alignFastQFiles {
     script:
     """
     diamond blastx -q ${fq} --db references.dmnd -f 100 --unal 0 -e 1e-6 --out ${fq.simpleName}.daa --threads ${task.cpus}
-    if [ ! \$(diamond view --daa ${fq.simpleName}.daa | wc -l) -gt 0 ];
+    if [ ! \$(diamond view --daa ${fq.simpleName}.daa | wc -l) -gt ${params.diamond_min_align_reads} ];
     then
       rm ${fq.simpleName}.daa
       echo "No queries were aligned for sample ${fq.simpleName}"
