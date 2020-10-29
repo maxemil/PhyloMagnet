@@ -65,6 +65,6 @@ now you can either get PhyloMagnet from github (clone or download from github.co
   nextflow run maxemil/PhyloMagnet --help
 
   # or
-  git clone github.com/maxemil/PhyloMagnet
+  git clone https://github.com/maxemil/PhyloMagnet
 
   nextflow run PhyloMagnet/main.nf --help
